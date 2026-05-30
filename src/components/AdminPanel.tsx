@@ -20,7 +20,10 @@ import {
   MessageSquare, 
   AlertCircle,
   Save,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Mail,
+  Send,
+  Loader2
 } from "lucide-react";
 import { useSite } from "../context/SiteContext";
 
@@ -29,7 +32,7 @@ interface AdminPanelProps {
   onClose: () => void;
 }
 
-type TabType = "general" | "author" | "chapters" | "benefits" | "testimonials" | "faqs" | "images";
+type TabType = "general" | "author" | "chapters" | "benefits" | "testimonials" | "faqs" | "images" | "notifications";
 
 export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
   const {
@@ -67,6 +70,38 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
   // New item drafting states
   const [newHighlight, setNewHighlight] = useState("");
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
+
+  // SMTP Test Email States
+  const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSendTestEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testEmailAddress) return;
+
+    setIsSendingTest(true);
+    setTestResult(null);
+
+    try {
+      const res = await fetch("/api/test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testEmail: testEmailAddress }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTestResult({ success: true, message: data.message });
+        showToast("E-mail de test expédié !");
+      } else {
+        setTestResult({ success: false, message: data.error || "Une erreur est survenue." });
+      }
+    } catch (err: any) {
+      setTestResult({ success: false, message: err.message || "Impossible d'atteindre l'API." });
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,6 +238,7 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                       { id: "testimonials", label: "Témoignages", icon: MessageSquare },
                       { id: "faqs", label: "Questions FAQ", icon: HelpCircle },
                       { id: "images", label: "Images & Visuels", icon: ImageIcon },
+                      { id: "notifications", label: "E-mails & SMTP", icon: Mail },
                     ].map((tab) => {
                       const IconObj = tab.icon;
                       return (
@@ -940,6 +976,113 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                             </div>
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 8: NOTIFICATIONS / EMAIL SMTP TEST */}
+                  {activeTab === "notifications" && (
+                    <div className="space-y-6">
+                      <div className="space-y-1">
+                        <h4 className="font-serif text-lg font-bold text-navy-950">Vérification des Notifications & Serveur SMTP</h4>
+                        <p className="text-xs text-stone-500">
+                          Utilisez cet utilitaire pour valider instantanément la configuration de votre serveur de messagerie SMTP (Gmail, Hostinger, Resend etc.) et vérifier la réception des emails.
+                        </p>
+                      </div>
+
+                      <div className="p-5 bg-gradient-to-br from-stone-50 to-stone-100 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+                        <div className="flex items-start space-x-3">
+                          <div className="p-2 bg-amber-50 rounded-lg text-amber-600 border border-amber-100 shrink-0 mt-0.5">
+                            <Mail className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h5 className="font-serif text-sm font-bold text-navy-950">Comment tester vos notifications ?</h5>
+                            <p className="text-xs text-stone-600 leading-relaxed mt-1">
+                              Saisissez votre e-mail personnel ci-dessous et cliquez sur <strong>"Envoyer l'e-mail de test"</strong>. Le serveur va tenter de se connecter à vos identifiants SMTP (configurés dans les Secrets de la console) et d'expédier un courriel test en temps réel.
+                            </p>
+                          </div>
+                        </div>
+
+                        <form onSubmit={handleSendTestEmail} className="space-y-4 pt-2 border-t border-stone-200/60">
+                          <div>
+                            <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1.5 font-mono">
+                              Adresse e-mail cible pour le test
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                type="email"
+                                required
+                                value={testEmailAddress}
+                                onChange={(e) => setTestEmailAddress(e.target.value)}
+                                placeholder="votre-email@exemple.com"
+                                className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-xs bg-white text-stone-900 focus:ring-1 focus:ring-gold-500 focus:outline-none"
+                              />
+                              <button
+                                type="submit"
+                                disabled={isSendingTest || !testEmailAddress}
+                                className="px-4 py-2 bg-navy-950 hover:bg-navy-900 font-bold text-xs text-gold-400 hover:text-white rounded-lg flex items-center space-x-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                              >
+                                {isSendingTest ? (
+                                  <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <span>Envoi en cours...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Send className="w-3.5 h-3.5" />
+                                    <span>Envoyer le test</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </form>
+
+                        {testResult && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`p-4 rounded-xl border text-xs leading-relaxed space-y-2 mt-4 ${
+                              testResult.success
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-950"
+                                : "bg-red-50 border-red-200 text-red-950"
+                            }`}
+                          >
+                            <div className="flex items-center space-x-1.5 font-bold">
+                              <span>{testResult.success ? "✅ RÉUSSITE :" : "❌ ÉCHEC :"}</span>
+                              <span>{testResult.success ? "Envoi test réussi !" : "Problème de configuration"}</span>
+                            </div>
+                            <p className="font-mono text-[11px] bg-white/50 p-2.5 rounded-lg border border-black/[0.04] break-all leading-normal">
+                              {testResult.message}
+                            </p>
+                            {!testResult.success && (
+                              <div className="text-[11px] text-red-800 mt-2 font-sans space-y-1">
+                                <p>💡 <strong>Conseils d'autopsie :</strong></p>
+                                <ul className="list-disc pl-4 space-y-1">
+                                  <li>Vérifiez que votre mot de passe d'application ou clé d'API (<code>SMTP_PASS</code>) est correct. Les comptes Gmail nécessitent un <strong>Mot de passe d'application</strong> (deux facteurs actif), pas votre mot de passe Google ordinaire.</li>
+                                  <li>Assurez-vous que le port (<code>SMTP_PORT</code>) est correctement défini sur <code>587</code> (STARTTLS) ou <code>465</code> (SSL/TLS).</li>
+                                  <li>Vérifiez l'exactitude des variables <code>SMTP_HOST</code> et <code>SMTP_USER</code> dans l'onglet Settings.</li>
+                                </ul>
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </div>
+
+                      <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-xl space-y-2 text-xs text-amber-900 leading-normal font-sans">
+                        <div className="font-bold flex items-center space-x-1.5">
+                          <span>⚙️</span>
+                          <span>Où configurer les variables secrètes d'environnement ?</span>
+                        </div>
+                        <p>
+                          Si vous utilisez notre espace d'hébergement d'application active, cliquez sur l'icône de roue dentée ou <strong>"Settings"</strong> située dans le coin supérieur ou la barre latérale du Studio pour accéder à l'éditeur de variables/secrets. Complétez les clés définies dans le fichier <code>.env.example</code> :
+                        </p>
+                        <ol className="list-decimal pl-4 space-y-0.5 mt-1 font-semibold text-[11px]">
+                          <li><code>SMTP_HOST</code> : Ex: smtp.gmail.com, mail.gmx.com, mail.hostinger.com</li>
+                          <li><code>SMTP_PORT</code> : Ex: 587 ou 465</li>
+                          <li><code>SMTP_USER</code> : Votre adresse d'envoi officielle</li>
+                          <li><code>SMTP_PASS</code> : Le mot de passe d'application lié ou jeton</li>
+                        </ol>
                       </div>
                     </div>
                   )}

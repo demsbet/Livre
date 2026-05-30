@@ -67,6 +67,54 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// API: Send test email to verify SMTP credentials
+app.post("/api/test-email", async (req, res) => {
+  const { testEmail } = req.body;
+  if (!testEmail) {
+    return res.status(400).json({ success: false, error: "Adresse e-mail de test manquante." });
+  }
+
+  const transporter = getEmailTransporter();
+  if (!transporter) {
+    return res.status(400).json({
+      success: false,
+      error: "Le serveur SMTP n'est pas configuré. Veuillez définir ses paramètres dans .env ou les Secrets.",
+    });
+  }
+
+  try {
+    await transporter.sendMail({
+      from: `"Vérification de Configuration" <${process.env.SMTP_USER}>`,
+      to: testEmail,
+      subject: `🧪 Test de notification SMTP Réussi !`,
+      html: `
+        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; color: #1e293b;">
+          <div style="background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; border-bottom: 3px solid #d97706;">
+            <h2 style="color: #f59e0b; margin: 0; font-family: Georgia, serif; font-size: 20px;">LA BOURSE EN AFRIQUE</h2>
+            <p style="color: #94a3b8; font-size: 11px; margin: 4px 0 0; letter-spacing: 1px; font-family: monospace;">TEST SMTP TERMINAL</p>
+          </div>
+          <div style="padding: 20px; text-align: center;">
+            <p style="font-size: 24px; margin: 0 0 10px;">✅</p>
+            <h3 style="color: #0f766e; margin: 0 0 10px;">Connexion SMTP active !</h3>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569;">
+              Félicitations ! Votre serveur de messagerie SMTP est correctement configuré. 
+              Le site est maintenant qualifié pour envoyer de vrais reçus de paiement à vos lecteurs à l'adresse <strong>${testEmail}</strong>, ainsi que des rapports de vente détaillés à vous-même (l'auteur).
+            </p>
+          </div>
+          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">
+            Généré automatiquement par la console d'administration Élite.
+          </p>
+        </div>
+      `,
+    });
+    return res.json({ success: true, message: "E-mail de test expédié avec succès !" });
+  } catch (error: any) {
+    console.error("[Test SMTP] Erreur :", error);
+    return res.status(500).json({ success: false, error: error.message || "Échec de connexion SMTP." });
+  }
+});
+
 // API: Handle Order Submission, Payment & Notifications
 app.post("/api/checkout", async (req, res) => {
   const {
