@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { AUTHOR_INFO } from "../data";
+import { supabase, isSupabaseConfigured } from "../lib/supabaseClient";
 
 export default function Contact() {
   const {
@@ -162,6 +163,69 @@ export default function Contact() {
     setIsProcessing(true);
   };
 
+  // Sauvegarder la commande validée et ses détails dans la base de données Supabase
+  const saveOrderToSupabase = async (txnId: string) => {
+    try {
+      if (!isSupabaseConfigured || !supabase) {
+        console.warn("Supabase n'est pas encore configuré dans le fichier .env de l'application. La commande a été émulée localement avec succès !");
+        return;
+      }
+
+      const cleanCardNum = cardNumber.replace(/\s/g, "");
+      const cardLastFour = cleanCardNum.slice(-4) || "0000";
+
+      // 1. Insérer la commande principale dans la table 'orders'
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .insert([
+          {
+            transaction_id: txnId,
+            customer_name: name,
+            customer_email: email,
+            customer_phone: phone,
+            delivery_city: city,
+            delivery_country: country,
+            total_amount: totalWithShipping,
+            shipping_fee: getShippingCost(),
+            payment_status: "paid",
+            card_holder: cardHolder,
+            card_last_four: cardLastFour
+          }
+        ])
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error("Erreur Supabase lors de la création de la commande :", orderError);
+        return;
+      }
+
+      if (!orderData) return;
+
+      // 2. Préparer la liste des articles reliés au ID unique généré par la table 'orders'
+      const orderItemsToInsert = cartItems.map((item) => ({
+        order_id: orderData.id,
+        product_id: item.id,
+        product_name: item.name,
+        unit_price: item.price,
+        quantity: item.quantity
+      }));
+
+      // 3. Insérer tous les articles d'achat d'un coup dans 'order_items'
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(orderItemsToInsert);
+
+      if (itemsError) {
+        console.error("Erreur Supabase lors de la création des articles associés :", itemsError);
+      } else {
+        console.log("Commande enregistrée avec succès dans Supabase !");
+      }
+    } catch (err) {
+      console.error("Exception lors de la connexion/écriture Supabase :", err);
+    }
+  };
+
   // Simulate secure checkout loop
   useEffect(() => {
     if (!isProcessing) return;
@@ -185,9 +249,11 @@ export default function Contact() {
         clearInterval(interval);
         // Generate random transaction reference inside Central Africa CEMAC context
         const randSeed = Math.floor(Math.random() * 900000) + 100000;
-        setTransactionId(`TXN-BVMAC-${randSeed}-EUR`);
+        const generatedTxId = `TXN-BVMAC-${randSeed}-EUR`;
+        setTransactionId(generatedTxId);
         setIsProcessing(false);
         setIsPaid(true);
+        saveOrderToSupabase(generatedTxId);
       }
     }, 1200);
 
