@@ -859,15 +859,16 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                               <div>
                                 <h5 className="text-sm font-bold text-navy-950 font-serif">Image de Couverture du Livre (3D Mockup)</h5>
                                 <p className="text-[11px] text-stone-500">S'affiche en taille imposante sur le mockup du bloc d'introduction (Hero).</p>
+                                <p className="text-[10px] text-amber-600 font-medium">⚠️ Saisissez une URL web (ex: https://...) pour un affichage garanti sur Vercel.</p>
                               </div>
                               <input
-                                type="text"
+                                type="url"
                                 value={siteImages.bookCover}
                                 onChange={(e) => {
                                   updateSiteImages({ bookCover: e.target.value });
                                   showToast("Image de couverture mise à jour !");
                                 }}
-                                placeholder="/src/assets/images/book_cover..."
+                                placeholder="https://images.unsplash.com/photo-... ou URL d'hébergement d'images"
                                 className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs bg-white focus:ring-1 focus:ring-gold-500 focus:outline-none font-mono"
                               />
                             </div>
@@ -891,15 +892,16 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                               <div>
                                 <h5 className="text-sm font-bold text-navy-950 font-serif">Portrait de l'Auteur</h5>
                                 <p className="text-[11px] text-stone-500">S'affiche dans la section détaillée "À propos de l'Auteur".</p>
+                                <p className="text-[10px] text-amber-600 font-medium">⚠️ Saisissez une URL web (ex: https://...) pour un affichage garanti sur Vercel.</p>
                               </div>
                               <input
-                                type="text"
+                                type="url"
                                 value={siteImages.authorPortrait}
                                 onChange={(e) => {
                                   updateSiteImages({ authorPortrait: e.target.value });
                                   showToast("Portrait d'auteur mis à jour !");
                                 }}
-                                placeholder="/src/assets/images/author_portrait..."
+                                placeholder="https://images.unsplash.com/photo-... ou URL d'hébergement d'images"
                                 className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs bg-white focus:ring-1 focus:ring-gold-500 focus:outline-none font-mono"
                               />
                             </div>
@@ -923,15 +925,16 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                               <div>
                                 <h5 className="text-sm font-bold text-navy-950 font-serif">Arrière-plan Graphique Boursier</h5>
                                 <p className="text-[11px] text-stone-500">S'affiche en opacité tamisée comme arrière-plan sombre du Hero (Bannière principal).</p>
+                                <p className="text-[10px] text-amber-600 font-medium">⚠️ Saisissez une URL web (ex: https://...) pour un affichage garanti sur Vercel.</p>
                               </div>
                               <input
-                                type="text"
+                                type="url"
                                 value={siteImages.financialCharts}
                                 onChange={(e) => {
                                   updateSiteImages({ financialCharts: e.target.value });
                                   showToast("Arrière-plan boursier mis à jour !");
                                 }}
-                                placeholder="/src/assets/images/financial_charts..."
+                                placeholder="https://images.unsplash.com/photo-... ou URL d'hébergement d'images"
                                 className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs bg-white focus:ring-1 focus:ring-gold-500 focus:outline-none font-mono"
                               />
                             </div>
