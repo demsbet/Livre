@@ -29,6 +29,7 @@ DROP TABLE IF EXISTS benefits CASCADE;
 DROP TABLE IF EXISTS chapters CASCADE;
 DROP TABLE IF EXISTS book_details CASCADE;
 DROP TABLE IF EXISTS author_info CASCADE;
+DROP TABLE IF EXISTS site_images CASCADE;
 
 -- Activation des extensions d'identifiants sécurisés (UUID)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -108,6 +109,16 @@ CREATE TABLE faqs (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+-- Table des images dynamiques du site (images de marque modifiables par l'admin)
+CREATE TABLE site_images (
+    id VARCHAR(50) PRIMARY KEY DEFAULT 'default',
+    author_portrait TEXT NOT NULL,
+    book_cover TEXT NOT NULL,
+    financial_charts TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
 -- Table des commandes de livres enregistrées depuis l'interface sécurisée de validation
 CREATE TABLE orders (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -157,6 +168,7 @@ CREATE TRIGGER update_chapters_modtime BEFORE UPDATE ON chapters FOR EACH ROW EX
 CREATE TRIGGER update_benefits_modtime BEFORE UPDATE ON benefits FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_testimonials_modtime BEFORE UPDATE ON testimonials FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_faqs_modtime BEFORE UPDATE ON faqs FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+CREATE TRIGGER update_site_images_modtime BEFORE UPDATE ON site_images FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 
 
 -- =========================================================================
@@ -294,6 +306,15 @@ VALUES
 ('faq-3', 'Comment se déroule la livraison ?', 'Nous expédions et livrons principalement au Cameroun, Gabon, Congo, Tchad, RCA, Guinée Équatoriale (zone CEMAC) ainsi que la diaspora via des livraisons express ou points relais sécurisés. La livraison est coordonnée de manière fluide avec l''auteur et ses distributeurs agréés par WhatsApp.'),
 ('faq-4', 'Le livre explique-t-il comment choisir concrètement sa Société de Bourse ?', 'Oui, un chapitre entier est dédié au comparatif des Sociétés de Bourse de la sous-région CEMAC, leurs frais de tenue de compte, et la procédure exacte pour y ouvrir un compte à distance en toute légalité.');
 
+-- 4.7 Images par défaut du site
+INSERT INTO site_images (id, author_portrait, book_cover, financial_charts)
+VALUES (
+    'default',
+    'https://raw.githubusercontent.com/dominiqueeteme237/la-bourse-en-afrique/main/src/assets/images/author_portrait_exact_v2_1780143348819.png',
+    'https://raw.githubusercontent.com/dominiqueeteme237/la-bourse-en-afrique/main/src/assets/images/book_cover_1780131365477.png',
+    'https://raw.githubusercontent.com/dominiqueeteme237/la-bourse-en-afrique/main/src/assets/images/financial_charts_africa_1780131404194.png'
+);
+
 
 -- =========================================================================
 -- 5. SECURITE INTERNE SUPABASE (ROW LEVEL SECURITY - RLS)
@@ -306,6 +327,7 @@ ALTER TABLE chapters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE benefits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE faqs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_images ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 
@@ -317,6 +339,7 @@ CREATE POLICY "lecture_publique_chapitres" ON chapters FOR SELECT USING (true);
 CREATE POLICY "lecture_publique_avantages" ON benefits FOR SELECT USING (true);
 CREATE POLICY "lecture_publique_temoignages" ON testimonials FOR SELECT USING (true);
 CREATE POLICY "lecture_publique_faqs" ON faqs FOR SELECT USING (true);
+CREATE POLICY "lecture_publique_site_images" ON site_images FOR SELECT USING (true);
 
 -- Modification/Création limitée aux Administrateurs connectés (authentification Supabase)
 CREATE POLICY "admin_all_auteur" ON author_info FOR ALL TO authenticated USING (true) WITH CHECK (true);
@@ -325,6 +348,7 @@ CREATE POLICY "admin_all_chapitres" ON chapters FOR ALL TO authenticated USING (
 CREATE POLICY "admin_all_avantages" ON benefits FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "admin_all_temoignages" ON testimonials FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "admin_all_faqs" ON faqs FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_site_images" ON site_images FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- 5.2 Politiques de commandes (Public Inserts pour les achats, restriction de lecture)
 -- N'importe quel client anonyme peut valider et insérer une commande ou un item de panier
