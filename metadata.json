@@ -1,0 +1,6 @@
+{
+  "name": "Siewe de Kalambak Steeves",
+  "description": "Site officiel de Siewe de Kalambak Steeves, auteur financier. Découvrez son ouvrage 'La Bourse en Afrique', un guide d'investissement et de culture financière.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

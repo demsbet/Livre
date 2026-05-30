@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr" class="scroll-smooth">
+  <head>
+    <script>
+      (function() {
+        try {
+          var currentFetch = window.fetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function() {
+              return currentFetch;
+            },
+            set: function(value) {
+              currentFetch = value;
+            },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (e) {
+          console.warn('Failed to configure fetch getter/setter proxy:', e);
+        }
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- SEO Optimization -->
+    <title>Siewe de Kalambak Steeves | La Bourse en Afrique — Livre & Guide d'Investissement</title>
+    <meta name="description" content="Découvrez 'La Bourse en Afrique' par Siewe de Kalambak Steeves. Le guide d'investissement et d'éducation financière de référence pour comprendre et investir avec succès sur les marchés financiers africains." />
+    <meta name="keywords" content="La Bourse en Afrique, Siewe de Kalambak Steeves, livre bourse, investissement Afrique, BVMAC, CEMAC, éducation financière, finances d'Afrique, livre de finance, investir en Afrique" />
+    <meta name="author" content="Siewe de Kalambak Steeves" />
+    
+    <!-- Open Graph for Social Sharing -->
+    <meta property="og:title" content="Siewe de Kalambak Steeves | La Bourse en Afrique" />
+    <meta property="og:description" content="Le livre de référence incontournable pour maîtriser les marchés financiers et investir avec succès en Afrique." />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+
+    <!-- Google Fonts: Playfair Display (Serif header) & Plus Jakarta Sans (Sans-serif body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#fafafd] text-[#0f172a] antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
