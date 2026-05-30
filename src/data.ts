@@ -4,6 +4,9 @@
  */
 
 import { BookChapter, BookBenefit, Testimonial, FAQItem } from "./types";
+import authorPortrait from "./assets/images/author_portrait_exact_v2_1780143348819.png";
+import bookCover from "./assets/images/book_cover_1780131365477.png";
+import financialCharts from "./assets/images/financial_charts_africa_1780131404194.png";
 
 export const AUTHOR_INFO = {
   name: "Siewe de Kalambak Steeves",
@@ -209,8 +212,8 @@ export const FAQ_ITEMS: FAQItem[] = [
 ];
 
 export const SITE_IMAGES = {
-  authorPortrait: "/src/assets/images/author_portrait_exact_v2_1780143348819.png",
-  bookCover: "/src/assets/images/book_cover_1780131365477.png",
-  financialCharts: "/src/assets/images/financial_charts_africa_1780131404194.png",
+  authorPortrait,
+  bookCover,
+  financialCharts,
 };
 

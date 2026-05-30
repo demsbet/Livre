@@ -128,7 +128,21 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
   const [siteImages, setSiteImagesState] = useState(() => {
     try {
       const saved = localStorage.getItem("site_site_images");
-      return saved ? JSON.parse(saved) : DEFAULT_SITE_IMAGES;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Force update default stale paths that are not buildable on Vercel
+        if (parsed.bookCover?.startsWith("/src/assets/")) {
+          parsed.bookCover = DEFAULT_SITE_IMAGES.bookCover;
+        }
+        if (parsed.authorPortrait?.startsWith("/src/assets/")) {
+          parsed.authorPortrait = DEFAULT_SITE_IMAGES.authorPortrait;
+        }
+        if (parsed.financialCharts?.startsWith("/src/assets/")) {
+          parsed.financialCharts = DEFAULT_SITE_IMAGES.financialCharts;
+        }
+        return parsed;
+      }
+      return DEFAULT_SITE_IMAGES;
     } catch {
       return DEFAULT_SITE_IMAGES;
     }
