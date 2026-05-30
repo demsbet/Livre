@@ -59,6 +59,10 @@ export default function Contact() {
   const [processingStep, setProcessingStep] = useState("");
   const [isPaid, setIsPaid] = useState(false);
   const [transactionId, setTransactionId] = useState("");
+  const [isSmtpConfigured, setIsSmtpConfigured] = useState(false);
+  const [isStripeConfigured, setIsStripeConfigured] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const toFcfa = (euro: number) => {
     return (euro * 656).toLocaleString("fr-FR");
@@ -226,7 +230,7 @@ export default function Contact() {
     }
   };
 
-  // Simulate secure checkout loop
+  // Process live order submission via full-stack checkout API
   useEffect(() => {
     if (!isProcessing) return;
 
@@ -241,19 +245,66 @@ export default function Contact() {
     let currentStepIdx = 0;
     setProcessingStep(steps[0]);
 
+    // Fast progress through encryption/security checks, then send API payload
     const interval = setInterval(() => {
       currentStepIdx++;
-      if (currentStepIdx < steps.length) {
+      if (currentStepIdx < steps.length - 1) {
         setProcessingStep(steps[currentStepIdx]);
-      } else {
+      } else if (currentStepIdx === steps.length - 1) {
+        setProcessingStep(steps[currentStepIdx]);
+        
+        // Stop the interval and run the API request
         clearInterval(interval);
-        // Generate random transaction reference inside Central Africa CEMAC context
-        const randSeed = Math.floor(Math.random() * 900000) + 100000;
-        const generatedTxId = `TXN-BVMAC-${randSeed}-EUR`;
-        setTransactionId(generatedTxId);
-        setIsProcessing(false);
-        setIsPaid(true);
-        saveOrderToSupabase(generatedTxId);
+        
+        fetch("/api/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            email,
+            phone,
+            country,
+            city,
+            cartItems,
+            totalAmount: totalWithShipping,
+            shippingFee: getShippingCost(),
+            cardNumber: cardNumber.replace(/\s/g, ""),
+            cardHolder,
+            cardExpiry,
+            cardCvv
+          })
+        })
+          .then((res) => {
+            if (!res.ok) {
+              return res.json().then((errData) => {
+                throw new Error(errData.error || "Une erreur est survenue lors de la validation fiscale.");
+              });
+            }
+            return res.json();
+          })
+          .then((data) => {
+            if (data.success) {
+              setTransactionId(data.transactionId);
+              setIsSmtpConfigured(data.smtpConfigured);
+              setIsStripeConfigured(data.stripeConfigured);
+              setEmailSent(data.emailSent);
+              setEmailError(data.emailError);
+              
+              setIsProcessing(false);
+              setIsPaid(true);
+              
+              // Maintain local/secondary database recording for absolute safety
+              saveOrderToSupabase(data.transactionId);
+            } else {
+              setErrors([data.error || "La passerelle de paiement a refusé la transaction standard."]);
+              setIsProcessing(false);
+            }
+          })
+          .catch((err) => {
+            console.error("[Checkout] Échec :", err);
+            setErrors([err.message || "Impossible de joindre le serveur de facturation ou messagerie."]);
+            setIsProcessing(false);
+          });
       }
     }, 1200);
 
@@ -890,10 +941,53 @@ export default function Contact() {
 
                 {/* Final step action triggers (Print, continue shopping) */}
                 <div className="space-y-4 pt-4 border-t border-stone-200/80">
-                  <div className="p-4 bg-navy-50 border border-navy-100 rounded-xl text-center">
-                    <p className="text-xs sm:text-sm text-navy-900 leading-relaxed">
-                      📚 <strong className="text-navy-950">Félicitations pour votre investissement !</strong> Un reçu officiel de confirmation a été expédié à l'instant à l'adresse <strong className="text-navy-950">{email}</strong>. Notre coordinateur logistique vous contactera via WhatsApp (<strong className="text-navy-950">{phone}</strong>) sous 24h pour synchroniser vos créneaux de livraison point-relais.
-                    </p>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <p className="text-xs sm:text-sm text-emerald-950 leading-relaxed font-sans">
+                        📚 <strong>Félicitations pour votre investissement !</strong> Votre commande a été enregistrée avec succès. Un reçu officiel de confirmation a été expédié à l'adresse <strong>{email}</strong>. Notre coordinateur logistique vous contactera via WhatsApp (<strong>{phone}</strong>) sous 24h pour synchroniser vos créneaux de livraison point-relais.
+                      </p>
+                    </div>
+
+                    {/* Backend Live Integration Diagnosis Badges */}
+                    <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-2.5 text-left text-xs text-stone-750">
+                      <div className="font-bold text-stone-900 tracking-wide uppercase font-mono text-[10px]">Diagnostics des Passerelles de Production :</div>
+                      
+                      <div className="flex flex-col sm:flex-row gap-2 justify-between items-start sm:items-center">
+                        <div className="flex items-center space-x-2">
+                          <span className={`w-2 h-2 rounded-full ${isStripeConfigured ? "bg-emerald-500" : "bg-amber-500"}`} />
+                          <span className="font-semibold text-stone-800">Passerelle de Paiement :</span>
+                        </div>
+                        <span className="font-mono text-[11px]">
+                          {isStripeConfigured ? (
+                            <strong className="text-emerald-700 font-bold">DÉBIT RÉEL EFFECTUÉ (STRIPE LIVE)</strong>
+                          ) : (
+                            <span className="text-amber-700 font-semibold">Mode Simulation (Clé Stripe manquante dans .env)</span>
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-2 justify-between items-start sm:items-center border-t border-stone-150 pt-2">
+                        <div className="flex items-center space-x-2">
+                          <span className={`w-2 h-2 rounded-full ${emailSent ? "bg-emerald-500" : "bg-amber-500"}`} />
+                          <span className="font-semibold text-stone-800">Notification par E-mail :</span>
+                        </div>
+                        <span className="font-mono text-[11px]">
+                          {emailSent ? (
+                            <strong className="text-emerald-700 font-bold">E-MAILS RÉELS ENVOYÉS (SMTP ACTIF)</strong>
+                          ) : (
+                            <span className="text-amber-700 font-semibold">
+                              {emailError ? `Échec d'envoi SMTP : ${emailError}` : "Mode Simulation (Identifiants SMTP manquants dans .env)"}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
+                      {(!isStripeConfigured || !isSmtpConfigured) && (
+                        <div className="bg-amber-50/50 border border-amber-200/50 p-3 rounded-lg text-[11px] text-amber-900 leading-normal font-medium mt-1">
+                          💡 <strong>Note pour le Déploiement :</strong> Pour activer les prélèvements bancaires et notifications d'emails réels pour vos clients, veuillez configurer vos variables <code>STRIPE_SECRET_KEY</code> et vos accès <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code> dans le menu des Secrets d'application (Settings panel).
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 justify-center items-center font-bold">
