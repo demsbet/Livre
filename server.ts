@@ -67,6 +67,14 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// API: Safe dynamic retrieval of public VITE_SUPABASE credentials for client-side live syncing
+app.get("/api/supabase-config", (req, res) => {
+  res.json({
+    supabaseUrl: process.env.VITE_SUPABASE_URL || "",
+    supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || "",
+  });
+});
+
 // API: Send test email to verify SMTP credentials
 app.post("/api/test-email", async (req, res) => {
   const { testEmail } = req.body;

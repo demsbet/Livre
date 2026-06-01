@@ -14,7 +14,7 @@ import {
   FAQ_ITEMS as DEFAULT_FAQ_ITEMS,
   SITE_IMAGES as DEFAULT_SITE_IMAGES
 } from "../data";
-import { supabase, isSupabaseConfigured } from "../lib/supabaseClient";
+import { supabase, isSupabaseConfigured, updateSupabaseConfig } from "../lib/supabaseClient";
 
 interface SiteContextType {
   authorInfo: typeof DEFAULT_AUTHOR_INFO;
@@ -149,9 +149,26 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     }
   });
 
+  const [isSupabaseReady, setIsSupabaseReady] = useState(isSupabaseConfigured);
+
   // Load live data from Supabase on startup
   useEffect(() => {
     const fetchAllLiveSiteData = async () => {
+      // 0. Fetch credentials dynamically from Express environment if they are configured on the backend
+      try {
+        const configRes = await fetch("/api/supabase-config");
+        if (configRes.ok) {
+          const configData = await configRes.json();
+          if (configData.supabaseUrl && configData.supabaseAnonKey) {
+            updateSupabaseConfig(configData.supabaseUrl, configData.supabaseAnonKey);
+          }
+        }
+      } catch (err) {
+        console.log("[SiteContext] Backend not reachable at /api/supabase-config or offline. Falling back to build-time vars.", err);
+      }
+
+      setIsSupabaseReady(isSupabaseConfigured);
+
       if (!isSupabaseConfigured || !supabase) {
         console.log("Supabase is not configured yet. Using offline local/fallback storage.");
         return;
@@ -283,46 +300,46 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
 
   // Keep localStorage backup ONLY when Supabase is not configured to avoid local edits conflicts
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseReady) {
       localStorage.setItem("site_author_info", JSON.stringify(authorInfo));
     }
-  }, [authorInfo]);
+  }, [authorInfo, isSupabaseReady]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseReady) {
       localStorage.setItem("site_book_details", JSON.stringify(bookDetails));
     }
-  }, [bookDetails]);
+  }, [bookDetails, isSupabaseReady]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseReady) {
       localStorage.setItem("site_book_chapters", JSON.stringify(bookChapters));
     }
-  }, [bookChapters]);
+  }, [bookChapters, isSupabaseReady]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseReady) {
       localStorage.setItem("site_book_benefits", JSON.stringify(bookBenefits));
     }
-  }, [bookBenefits]);
+  }, [bookBenefits, isSupabaseReady]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseReady) {
       localStorage.setItem("site_testimonials", JSON.stringify(testimonials));
     }
-  }, [testimonials]);
+  }, [testimonials, isSupabaseReady]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseReady) {
       localStorage.setItem("site_faq_items", JSON.stringify(faqItems));
     }
-  }, [faqItems]);
+  }, [faqItems, isSupabaseReady]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseReady) {
       localStorage.setItem("site_site_images", JSON.stringify(siteImages));
     }
-  }, [siteImages]);
+  }, [siteImages, isSupabaseReady]);
 
   // Actions
   const updateAuthorInfo = (info: Partial<typeof DEFAULT_AUTHOR_INFO>) => {

@@ -1,16 +1,30 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Retrieve the Supabase configuration from environment variables
-const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
-const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
+// Retrieve the Supabase configuration from build-time environment variables as a legacy/static fallback
+const staticUrl = (import.meta as any).env.VITE_SUPABASE_URL || "";
+const staticAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || "";
 
-// Check if variables are configured
-export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+export let supabaseUrl = staticUrl;
+export let supabaseAnonKey = staticAnonKey;
+export let isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
 /**
- * Lazy-initialized Supabase client to avoid crashes if environment variables are not yet present.
- * If configured, returns the Supabase client instance. Otherwise, returns null.
+ * Lazy-initialized Supabase client. Can be updated dynamically at runtime via updateSupabaseConfig.
  */
-export const supabase = isSupabaseConfigured
+export let supabase: any = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
+
+/**
+ * Updates the Supabase configuration dynamically at runtime.
+ */
+export function updateSupabaseConfig(url: string, anonKey: string) {
+  if (url && anonKey) {
+    supabaseUrl = url;
+    supabaseAnonKey = anonKey;
+    isSupabaseConfigured = true;
+    supabase = createClient(url, anonKey);
+    console.log("[SupabaseClient] Supabase dynamically initialized successfully.");
+  }
+}
+

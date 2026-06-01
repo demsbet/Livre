@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { AUTHOR_INFO } from "../data";
-import { supabase, isSupabaseConfigured } from "../lib/supabaseClient";
+import * as db from "../lib/supabaseClient";
 
 export default function Contact() {
   const {
@@ -170,7 +170,7 @@ export default function Contact() {
   // Sauvegarder la commande validée et ses détails dans la base de données Supabase
   const saveOrderToSupabase = async (txnId: string) => {
     try {
-      if (!isSupabaseConfigured || !supabase) {
+      if (!db.isSupabaseConfigured || !db.supabase) {
         console.warn("Supabase n'est pas encore configuré dans le fichier .env de l'application. La commande a été émulée localement avec succès !");
         return;
       }
@@ -179,7 +179,7 @@ export default function Contact() {
       const cardLastFour = cleanCardNum.slice(-4) || "0000";
 
       // 1. Insérer la commande principale dans la table 'orders'
-      const { data: orderData, error: orderError } = await supabase
+      const { data: orderData, error: orderError } = await db.supabase
         .from("orders")
         .insert([
           {
@@ -216,7 +216,7 @@ export default function Contact() {
       }));
 
       // 3. Insérer tous les articles d'achat d'un coup dans 'order_items'
-      const { error: itemsError } = await supabase
+      const { error: itemsError } = await db.supabase
         .from("order_items")
         .insert(orderItemsToInsert);
 
