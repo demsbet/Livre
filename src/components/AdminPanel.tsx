@@ -44,6 +44,8 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
     faqItems,
     siteImages,
     isSupabaseReady,
+    lastError,
+    clearLastError,
     updateAuthorInfo,
     updateBookDetails,
     updateSiteImages,
@@ -292,6 +294,62 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                     <div className="absolute top-4 right-4 bg-emerald-600 text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-lg border border-emerald-500/30 flex items-center space-x-1.5 z-20 animate-bounce">
                       <Check className="w-4 h-4 stroke-[3]" />
                       <span>{successToast}</span>
+                    </div>
+                  )}
+
+                  {/* Supabase Security (RLS) Database Write Block Warning */}
+                  {lastError && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-xs space-y-3 shadow-sm">
+                      <div className="flex items-start space-x-2.5 text-red-800 font-semibold">
+                        <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold">⚠️ Échec d'enregistrement en ligne dans votre Supabase</p>
+                          <p className="font-normal text-red-700 mt-1">
+                            Vos modifications ont été prises en compte localement dans votre navigateur, mais ont été <strong>rejetées par votre base de données Supabase</strong>.
+                            Cela s'explique par les règles de sécurité RLS (Row Level Security) configurées dans votre Supabase qui interdisent les écritures pour les visiteurs anonymes actuels :
+                          </p>
+                          <p className="font-mono text-[11px] bg-red-100/60 p-2 rounded border border-red-200 text-red-900 mt-1.5 whitespace-pre-wrap font-bold">
+                            Code d'erreur : {lastError}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="p-3 bg-white border border-red-100 rounded-lg space-y-2 text-stone-750 leading-relaxed font-sans">
+                        <p className="font-bold text-navy-950 text-[11px] font-mono uppercase tracking-wider">
+                          🛠️ COMMENT RÉSOUDRE CE PROBLÈME EN 30 SECONDES :
+                        </p>
+                        <p className="text-xs">
+                          Puisque l'authentification admin s'effectue via un simple mot de passe local de démonstration sans créer de comptes clients Supabase, vous devez autoriser le client web anonyme à écrire dans les tables de contenu. 
+                          Veuillez copier le script ci-dessous, aller sur votre tableau de bord <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-gold-600 font-semibold underline">Supabase &gt; SQL Editor</a>, coller ces requêtes et cliquer sur <strong>Run</strong> :
+                        </p>
+                        <pre className="text-[10px] font-mono bg-stone-900 text-stone-100 p-3 rounded-md overflow-x-auto select-all max-h-40 leading-normal">
+{`-- Exécutez ce script dans Supabase > SQL Editor pour autoriser l'écriture anonyme :
+DROP POLICY IF EXISTS "admin_all_auteur" ON author_info;
+DROP POLICY IF EXISTS "admin_all_livre" ON book_details;
+DROP POLICY IF EXISTS "admin_all_chapitres" ON chapters;
+DROP POLICY IF EXISTS "admin_all_avantages" ON benefits;
+DROP POLICY IF EXISTS "admin_all_temoignages" ON testimonials;
+DROP POLICY IF EXISTS "admin_all_faqs" ON faqs;
+DROP POLICY IF EXISTS "admin_all_site_images" ON site_images;
+
+CREATE POLICY "admin_all_auteur" ON author_info FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_livre" ON book_details FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_chapitres" ON chapters FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_avantages" ON benefits FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_temoignages" ON testimonials FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_faqs" ON faqs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_site_images" ON site_images FOR ALL USING (true) WITH CHECK (true);`}
+                        </pre>
+                        <p className="text-[11px] flex items-center justify-between mt-2 pt-2 border-t border-stone-100 font-bold text-emerald-700">
+                          <span>Une fois cliqué sur "Run" dans Supabase, réactualisez la page : vos modifications seront sauvegardées pour toujours !</span>
+                          <button 
+                            type="button" 
+                            onClick={clearLastError} 
+                            className="px-2.5 py-1 bg-red-100 text-red-800 hover:bg-red-200 border border-red-200 rounded text-[10px] font-semibold transition-colors cursor-pointer"
+                          >
+                            Ignorer l'avertissement
+                          </button>
+                        </p>
+                      </div>
                     </div>
                   )}
 

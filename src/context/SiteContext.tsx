@@ -25,6 +25,8 @@ interface SiteContextType {
   faqItems: FAQItem[];
   siteImages: typeof DEFAULT_SITE_IMAGES;
   isSupabaseReady: boolean;
+  lastError: string | null;
+  clearLastError: () => void;
   
   updateAuthorInfo: (info: Partial<typeof DEFAULT_AUTHOR_INFO>) => void;
   updateBookDetails: (details: Partial<typeof DEFAULT_BOOK_DETAILS>) => void;
@@ -155,6 +157,8 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [isSupabaseReady, setIsSupabaseReady] = useState(db.isSupabaseConfigured);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const clearLastError = () => setLastError(null);
 
   // Load live data from Supabase on startup
   useEffect(() => {
@@ -378,8 +382,10 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
                 .then(({ error: updateError }: any) => {
                   if (updateError) {
                     console.error("[Supabase] ÉCHEC mise à jour author_info (Vérifiez RLS) :", updateError);
+                    setLastError(updateError.message || "RLS Blocked Update");
                   } else {
                     console.log("[Supabase] Info auteur mise à jour avec succès !");
+                    setLastError(null);
                   }
                 });
             } else {
@@ -388,8 +394,10 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
                 .then(({ error: insertError }: any) => {
                   if (insertError) {
                     console.error("[Supabase] ÉCHEC insertion author_info (Vérifiez RLS) :", insertError);
+                    setLastError(insertError.message || "RLS Blocked Insert");
                   } else {
                     console.log("[Supabase] Nouvelle info auteur insérée !");
+                    setLastError(null);
                   }
                 });
             }
@@ -434,8 +442,10 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
                 .then(({ error: updateError }: any) => {
                   if (updateError) {
                     console.error("[Supabase] ÉCHEC mise à jour book_details (Vérifiez RLS) :", updateError);
+                    setLastError(updateError.message || "RLS Blocked Update");
                   } else {
                     console.log("[Supabase] Détails livre mis à jour avec succès !");
+                    setLastError(null);
                   }
                 });
             } else {
@@ -444,8 +454,10 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
                 .then(({ error: insertError }: any) => {
                   if (insertError) {
                     console.error("[Supabase] ÉCHEC insertion book_details (Vérifiez RLS) :", insertError);
+                    setLastError(insertError.message || "RLS Blocked Insert");
                   } else {
                     console.log("[Supabase] Nouveaux détails livre insérés !");
+                    setLastError(null);
                   }
                 });
             }
@@ -482,8 +494,10 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
                 .then(({ error: updateError }: any) => {
                   if (updateError) {
                     console.error("[Supabase] ÉCHEC de la sauvegarde de l'image (Vérifiez RLS !) :", updateError);
+                    setLastError(updateError.message || "RLS Blocked Image Update");
                   } else {
                     console.log("[Supabase] Image sauvegardée en base de données avec succès !");
+                    setLastError(null);
                   }
                 });
             } else {
@@ -492,8 +506,10 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
                 .then(({ error: insertError }: any) => {
                   if (insertError) {
                     console.error("[Supabase] ÉCHEC de la création de l'image (Vérifiez RLS !) :", insertError);
+                    setLastError(insertError.message || "RLS Blocked Image Insert");
                   } else {
                     console.log("[Supabase] Nouvelle image insérée avec succès dans Supabase !");
+                    setLastError(null);
                   }
                 });
             }
@@ -517,7 +533,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             description: target.description,
             highlights: target.highlights
           })
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de la mise à jour du chapitre:", error);
+              setLastError(error.message || "RLS Blocked Chapter Update");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return next;
     });
@@ -537,7 +560,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             description: newChapter.description,
             highlights: newChapter.highlights
           }])
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de la création du chapitre:", error);
+              setLastError(error.message || "RLS Blocked Chapter Insert");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return [...prev, newChapter];
     });
@@ -550,7 +580,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .from("chapters")
           .delete()
           .eq("id", id)
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de la suppression du chapitre:", error);
+              setLastError(error.message || "RLS Blocked Chapter Delete");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return prev.filter((c) => c.id !== id);
     });
@@ -569,7 +606,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             description: target.description,
             icon: target.icon
           })
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de la mise à jour de l'avantage:", error);
+              setLastError(error.message || "RLS Blocked Benefit Update");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return next;
     });
@@ -588,7 +632,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             description: newBenefit.description,
             icon: newBenefit.icon
           }])
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de la création de l'avantage:", error);
+              setLastError(error.message || "RLS Blocked Benefit Insert");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return [...prev, newBenefit];
     });
@@ -601,7 +652,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .from("benefits")
           .delete()
           .eq("id", id)
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de la suppression de l'avantage:", error);
+              setLastError(error.message || "RLS Blocked Benefit Delete");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return prev.filter((b) => b.id !== id);
     });
@@ -623,7 +681,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             avatar_url: target.avatarUrl,
             rating: target.rating
           })
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de la mise à jour du témoignage:", error);
+              setLastError(error.message || "RLS Blocked Testimonial Update");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return next;
     });
@@ -645,7 +710,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             avatar_url: newTestimonial.avatarUrl,
             rating: newTestimonial.rating
           }])
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de l'ajout du témoignage:", error);
+              setLastError(error.message || "RLS Blocked Testimonial Insert");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return [...prev, newTestimonial];
     });
@@ -658,7 +730,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .from("testimonials")
           .delete()
           .eq("id", id)
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de la suppression du témoignage:", error);
+              setLastError(error.message || "RLS Blocked Testimonial Delete");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return prev.filter((t) => t.id !== id);
     });
@@ -676,7 +755,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             question: target.question,
             answer: target.answer
           })
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de la mise à jour de la FAQ:", error);
+              setLastError(error.message || "RLS Blocked FAQ Update");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return next;
     });
@@ -694,7 +780,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             question: newFaqItem.question,
             answer: newFaqItem.answer
           }])
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de la création de la FAQ:", error);
+              setLastError(error.message || "RLS Blocked FAQ Insert");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return [...prev, newFaqItem];
     });
@@ -707,7 +800,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .from("faqs")
           .delete()
           .eq("id", id)
-          .then();
+          .then(({ error }: any) => {
+            if (error) {
+              console.error("[Supabase] Échec de la suppression de la FAQ:", error);
+              setLastError(error.message || "RLS Blocked FAQ Delete");
+            } else {
+              setLastError(null);
+            }
+          });
       }
       return prev.filter((f) => f.id !== id);
     });
@@ -814,6 +914,8 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
         faqItems,
         siteImages,
         isSupabaseReady,
+        lastError,
+        clearLastError,
         updateAuthorInfo,
         updateBookDetails,
         updateSiteImages,

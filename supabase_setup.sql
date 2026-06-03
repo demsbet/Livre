@@ -341,14 +341,14 @@ CREATE POLICY "lecture_publique_temoignages" ON testimonials FOR SELECT USING (t
 CREATE POLICY "lecture_publique_faqs" ON faqs FOR SELECT USING (true);
 CREATE POLICY "lecture_publique_site_images" ON site_images FOR SELECT USING (true);
 
--- Modification/Création limitée aux Administrateurs connectés (authentification Supabase)
-CREATE POLICY "admin_all_auteur" ON author_info FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_livre" ON book_details FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_chapitres" ON chapters FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_avantages" ON benefits FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_temoignages" ON testimonials FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_faqs" ON faqs FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_site_images" ON site_images FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Modification/Création libre pour les administrateurs via l'interface (accès public / invité)
+CREATE POLICY "admin_all_auteur" ON author_info FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_livre" ON book_details FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_chapitres" ON chapters FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_avantages" ON benefits FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_temoignages" ON testimonials FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_faqs" ON faqs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_site_images" ON site_images FOR ALL USING (true) WITH CHECK (true);
 
 -- 5.2 Politiques de commandes (Public Inserts pour les achats, restriction de lecture)
 -- N'importe quel client anonyme peut valider et insérer une commande ou un item de panier
