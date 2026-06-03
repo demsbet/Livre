@@ -14,7 +14,7 @@ import {
   FAQ_ITEMS as DEFAULT_FAQ_ITEMS,
   SITE_IMAGES as DEFAULT_SITE_IMAGES
 } from "../data";
-import { supabase, isSupabaseConfigured, updateSupabaseConfig } from "../lib/supabaseClient";
+import * as db from "../lib/supabaseClient";
 
 interface SiteContextType {
   authorInfo: typeof DEFAULT_AUTHOR_INFO;
@@ -51,6 +51,10 @@ interface SiteContextType {
 const SiteContext = createContext<SiteContextType | undefined>(undefined);
 
 export function SiteProvider({ children }: { children: React.ReactNode }) {
+  // Read live, dynamically updated Supabase config properties from db module
+  const isSupabaseConfigured = db.isSupabaseConfigured;
+  const supabase = db.supabase;
+
   // Use state with lazy initializers from localStorage
   const [authorInfo, setAuthorInfoState] = useState(() => {
     try {
@@ -149,7 +153,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     }
   });
 
-  const [isSupabaseReady, setIsSupabaseReady] = useState(isSupabaseConfigured);
+  const [isSupabaseReady, setIsSupabaseReady] = useState(db.isSupabaseConfigured);
 
   // Load live data from Supabase on startup
   useEffect(() => {
@@ -160,19 +164,20 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
         if (configRes.ok) {
           const configData = await configRes.json();
           if (configData.supabaseUrl && configData.supabaseAnonKey) {
-            updateSupabaseConfig(configData.supabaseUrl, configData.supabaseAnonKey);
+            db.updateSupabaseConfig(configData.supabaseUrl, configData.supabaseAnonKey);
           }
         }
       } catch (err) {
         console.log("[SiteContext] Backend not reachable at /api/supabase-config or offline. Falling back to build-time vars.", err);
       }
 
-      setIsSupabaseReady(isSupabaseConfigured);
+      setIsSupabaseReady(db.isSupabaseConfigured);
 
-      if (!isSupabaseConfigured || !supabase) {
+      if (!db.isSupabaseConfigured || !db.supabase) {
         console.log("Supabase is not configured yet. Using offline local/fallback storage.");
         return;
       }
+      const supabase = db.supabase;
       try {
         // 1. Fetch Author Info
         const { data: authorData, error: authorError } = await supabase

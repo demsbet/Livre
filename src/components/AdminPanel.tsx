@@ -872,7 +872,30 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                       <div className="space-y-1">
                         <h4 className="font-serif text-lg font-bold text-navy-950">Gestion des Images du Site</h4>
                         <p className="text-xs text-stone-500">
-                          Personnalisez les visuels clés du site en modifiant leurs liens ou chemins d'accès. Vous pouvez utiliser de nouveaux chemins d'images, des liens générés ou des URLs de visuels en ligne pour adapter l'esthétique à votre gré.
+                          Personnalisez les visuels clés du site en modifiant leurs liens ou chemins d'accès. Vos modifications sont synchronisées sur le serveur Supabase pour être visibles sur tous les appareils.
+                        </p>
+                      </div>
+
+                      {/* ImgBB Hosting Help Board */}
+                      <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2.5 text-xs text-stone-800 leading-relaxed font-sans shadow-sm">
+                        <div className="font-bold flex items-center space-x-2 text-amber-900">
+                          <span className="text-base">🌐</span>
+                          <span>Hébergement d'images externe via ImgBB</span>
+                        </div>
+                        <p>
+                          Plutôt que d'enregistrer des fichiers binaires lourds dans la base de données, l'application est configurée pour <strong>récupérer les images directement par leur URL web</strong> (comme celles hébergées sur le site gratuit <a href="https://fr.imgbb.com/" target="_blank" rel="noreferrer" className="underline font-semibold text-amber-800 hover:text-amber-900">fr.imgbb.com</a>).
+                        </p>
+                        <div className="text-[11px] space-y-1.5 bg-white/80 p-3 rounded-lg border border-amber-200/50">
+                          <p className="font-bold text-amber-950">💡 Comment mettre vos images en ligne sur tous les appareils ?</p>
+                          <ol className="list-decimal pl-4.5 space-y-1 text-stone-700">
+                            <li>Rendez-vous sur <a href="https://fr.imgbb.com/" target="_blank" rel="noreferrer" className="underline text-amber-800 font-medium">fr.imgbb.com</a> et téléversez votre image.</li>
+                            <li>Après le téléversement, ouvrez la liste déroulante d'intégration et choisissez l'option <strong>"Lien direct"</strong>.</li>
+                            <li>Copiez cet URL (qui se termine par une extension comme <code>.jpg</code>, <code>.png</code> ou <code>.webp</code>).</li>
+                            <li>Collez le lien direct dans l'un des cadres ci-dessous. Dès que Supabase est connecté, vos images sont appliquées <strong>instantanément sur tous les appareils</strong> !</li>
+                          </ol>
+                        </div>
+                        <p className="text-[11px] text-stone-500 italic">
+                          ℹ️ Si les images ne changent pas sur d'autres appareils, cela signifie que Supabase n'est pas encore ou mal connecté sur votre hébergement (comme Vercel). Vos modifications se stockent alors uniquement sur votre navigateur actuel (localStorage). Connectez Supabase dans vos variables d'environnement de production pour synchroniser l'ensemble.
                         </p>
                       </div>
 
