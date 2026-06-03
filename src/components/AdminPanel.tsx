@@ -43,6 +43,7 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
     testimonials,
     faqItems,
     siteImages,
+    isSupabaseReady,
     updateAuthorInfo,
     updateBookDetails,
     updateSiteImages,
@@ -151,9 +152,19 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
               <div className="flex items-center space-x-2.5">
                 <Settings className="w-5.5 h-5.5 text-gold-400 animate-spin-slow" />
                 <div>
-                  <h3 className="text-base font-serif font-black tracking-wide text-white">
-                    Console d'Administration Élite
-                  </h3>
+                  <div className="flex items-center space-x-2 flex-wrap">
+                    <h3 className="text-base font-serif font-black tracking-wide text-white">
+                      Console d'Administration Élite
+                    </h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-tight uppercase flex items-center ${
+                      isSupabaseReady 
+                        ? "bg-green-500/20 text-green-400 border border-green-500/35" 
+                        : "bg-amber-500/20 text-amber-400 border border-amber-500/35 animate-pulse"
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isSupabaseReady ? "bg-green-400 animate-pulse" : "bg-amber-400"}`} />
+                      {isSupabaseReady ? "Supabase Connecté (En Ligne)" : "Hors-ligne (Local)"}
+                    </span>
+                  </div>
                   <p className="text-[10px] font-mono text-stone-400">
                     SÉCURISÉE PAR L'AUTEUR ET LA COSUMAF
                   </p>
@@ -869,34 +880,79 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                   {/* TAB 7: SITE IMAGES */}
                   {activeTab === "images" && (
                     <div className="space-y-6">
-                      <div className="space-y-1">
-                        <h4 className="font-serif text-lg font-bold text-navy-950">Gestion des Images du Site</h4>
-                        <p className="text-xs text-stone-500">
-                          Personnalisez les visuels clés du site en modifiant leurs liens ou chemins d'accès. Vos modifications sont synchronisées sur le serveur Supabase pour être visibles sur tous les appareils.
-                        </p>
+                      <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                        <div className="space-y-0.5">
+                          <h4 className="font-serif text-lg font-bold text-navy-950">Gestion des Images du Site</h4>
+                          <p className="text-xs text-stone-500">
+                            Personnalisez les visuels clés du site en modifiant leurs liens ou chemins d'accès.
+                          </p>
+                        </div>
+                        {isSupabaseReady ? (
+                          <span className="bg-green-150 text-green-800 border border-green-200 text-[10px] font-bold px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-xs">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            <span>Synchronisé Cloud (Actif)</span>
+                          </span>
+                        ) : (
+                          <span className="bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-xs animate-pulse">
+                            <span className="w-2 h-2 rounded-full bg-amber-500" />
+                            <span>Hors-ligne (Local Uniquement)</span>
+                          </span>
+                        )}
                       </div>
 
+                      {/* Vercel & Supabase Connection Instructions */}
+                      {!isSupabaseReady && (
+                        <div className="p-4 bg-amber-50/90 border border-amber-300 rounded-xl space-y-3 text-xs text-stone-800 leading-relaxed shadow-sm">
+                          <div className="font-bold flex items-center space-x-2 text-amber-900">
+                            <span className="text-lg">📢</span>
+                            <span>Pourquoi vos images ne changent pas sur tous les appareils ?</span>
+                          </div>
+                          <p className="font-sans">
+                            Actuellement, votre site fonctionne en <strong>Mode local / Hors-ligne (localStorage)</strong> car les clés de votre base de données Supabase ne sont pas détectées ou mal configurées sur Vercel. Toutes les modifications que vous faites ici sont enregistrées uniquement sur ce navigateur actuel.
+                          </p>
+                          
+                          <div className="bg-white/95 p-3.5 rounded-lg border border-amber-200 space-y-2.5 shadow-xs">
+                            <p className="font-bold text-amber-950 flex items-center space-x-1.5">
+                              <span>🛠️</span>
+                              <span>Résoudre le problème en 3 étapes :</span>
+                            </p>
+                            <ol className="list-decimal pl-5 space-y-1.5 text-stone-700 leading-normal">
+                              <li>
+                                <strong>La bonne page sur Vercel :</strong> Dans votre capture d'écran, vous êtes sur l'onglet <em>"Environments"</em>. Ce n'est pas le bon endroit ! Vous devez aller sur l'onglet <strong>"Environment Variables"</strong> (situé juste en dessous dans le menu de gauche, ou via ce lien direct : <a href="https://vercel.com/demsbet's-projects/libre/settings/environment-variables" target="_blank" rel="noreferrer" className="underline font-bold text-navy-950 hover:text-gold-600">Allez sur Environment Variables</a>).
+                              </li>
+                              <li>
+                                <strong>Le préfixe obligatoire (VITE_) :</strong> Les variables d'environnement lues par l'application doivent impérativement démarrer avec <code>VITE_</code>. Ajoutez ces deux variables de façon exacte :
+                                <div className="mt-1 font-mono text-[10px] bg-stone-50 p-2 rounded border border-stone-200 space-y-1 text-navy-950 select-all">
+                                  <div className="font-semibold">VITE_SUPABASE_URL = <span className="text-xs text-stone-500 italic font-sans">[votre_url_de_projet_supabase]</span></div>
+                                  <div className="font-semibold">VITE_SUPABASE_ANON_KEY = <span className="text-xs text-stone-500 italic font-sans">[votre_cle_anon_de_supabase]</span></div>
+                                </div>
+                              </li>
+                              <li>
+                                <strong>Le re-déploiement obligatoire :</strong> Après avoir enregistré les variables sur Vercel, vous devez impérativement <strong>Redéployer le site sur Vercel</strong> (allez dans l'onglet <strong>"Deployments"</strong> puis cliquez sur les trois petits points <code>...</code> à côté de votre dernier déploiement, et choisissez <strong>"Redeploy"</strong>). C'est ce qui permet à Vercel de compiler l'application avec vos clés de base de données.
+                              </li>
+                            </ol>
+                          </div>
+                        </div>
+                      )}
+
                       {/* ImgBB Hosting Help Board */}
-                      <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2.5 text-xs text-stone-800 leading-relaxed font-sans shadow-sm">
-                        <div className="font-bold flex items-center space-x-2 text-amber-900">
+                      <div className="p-4 bg-sky-50/75 border border-sky-200 rounded-xl space-y-2 text-xs text-stone-800 leading-relaxed font-sans shadow-sm">
+                        <div className="font-bold flex items-center space-x-2 text-sky-900">
                           <span className="text-base">🌐</span>
                           <span>Hébergement d'images externe via ImgBB</span>
                         </div>
                         <p>
-                          Plutôt que d'enregistrer des fichiers binaires lourds dans la base de données, l'application est configurée pour <strong>récupérer les images directement par leur URL web</strong> (comme celles hébergées sur le site gratuit <a href="https://fr.imgbb.com/" target="_blank" rel="noreferrer" className="underline font-semibold text-amber-800 hover:text-amber-900">fr.imgbb.com</a>).
+                          Plutôt que d'enregistrer des fichiers binaires lourds dans la base de données, l'application est configurée pour <strong>récupérer les images directement par leur URL web</strong> (comme celles hébergées sur le site gratuit et rapide <a href="https://fr.imgbb.com/" target="_blank" rel="noreferrer" className="underline font-semibold text-sky-800 hover:text-sky-900">fr.imgbb.com</a>).
                         </p>
-                        <div className="text-[11px] space-y-1.5 bg-white/80 p-3 rounded-lg border border-amber-200/50">
-                          <p className="font-bold text-amber-950">💡 Comment mettre vos images en ligne sur tous les appareils ?</p>
-                          <ol className="list-decimal pl-4.5 space-y-1 text-stone-700">
-                            <li>Rendez-vous sur <a href="https://fr.imgbb.com/" target="_blank" rel="noreferrer" className="underline text-amber-800 font-medium">fr.imgbb.com</a> et téléversez votre image.</li>
+                        <div className="text-[11px] space-y-1 bg-white/70 p-2.5 rounded-lg border border-sky-100">
+                          <p className="font-bold text-sky-950">💡 Comment insérer vos images ?</p>
+                          <ol className="list-decimal pl-4.5 space-y-0.5 text-stone-700">
+                            <li>Rendez-vous sur <a href="https://fr.imgbb.com/" target="_blank" rel="noreferrer" className="underline text-sky-800 font-medium">fr.imgbb.com</a> et téléversez votre image.</li>
                             <li>Après le téléversement, ouvrez la liste déroulante d'intégration et choisissez l'option <strong>"Lien direct"</strong>.</li>
                             <li>Copiez cet URL (qui se termine par une extension comme <code>.jpg</code>, <code>.png</code> ou <code>.webp</code>).</li>
                             <li>Collez le lien direct dans l'un des cadres ci-dessous. Dès que Supabase est connecté, vos images sont appliquées <strong>instantanément sur tous les appareils</strong> !</li>
                           </ol>
                         </div>
-                        <p className="text-[11px] text-stone-500 italic">
-                          ℹ️ Si les images ne changent pas sur d'autres appareils, cela signifie que Supabase n'est pas encore ou mal connecté sur votre hébergement (comme Vercel). Vos modifications se stockent alors uniquement sur votre navigateur actuel (localStorage). Connectez Supabase dans vos variables d'environnement de production pour synchroniser l'ensemble.
-                        </p>
                       </div>
 
                       <div className="space-y-6">
@@ -918,18 +974,32 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                               <div>
                                 <h5 className="text-sm font-bold text-navy-950 font-serif">Image de Couverture du Livre (3D Mockup)</h5>
                                 <p className="text-[11px] text-stone-500">S'affiche en taille imposante sur le mockup du bloc d'introduction (Hero).</p>
-                                <p className="text-[10px] text-amber-600 font-medium">⚠️ Saisissez une URL web (ex: https://...) pour un affichage garanti sur Vercel.</p>
                               </div>
                               <input
                                 type="url"
                                 value={siteImages.bookCover}
                                 onChange={(e) => {
                                   updateSiteImages({ bookCover: e.target.value });
-                                  showToast("Image de couverture mise à jour !");
+                                  showToast(
+                                    isSupabaseReady
+                                      ? "Couverture du livre mise à jour et synchronisée sur tous les appareils ! ✅"
+                                      : "Couverture mise à jour localement ! ⚠️ (Supabase déconnecté)"
+                                  );
                                 }}
                                 placeholder="https://images.unsplash.com/photo-... ou URL d'hébergement d'images"
                                 className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs bg-white focus:ring-1 focus:ring-gold-500 focus:outline-none font-mono"
                               />
+                              <div className="text-[10px] font-sans">
+                                {isSupabaseReady ? (
+                                  <span className="text-green-600 font-semibold flex items-center">
+                                    ● Enregistré sur le cloud Supabase (Visible partout instantanément !)
+                                  </span>
+                                ) : (
+                                  <span className="text-amber-700 font-medium flex items-center">
+                                    ⚠️ Sauvegardé localement sur ce navigateur (Hors-ligne)
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -951,18 +1021,32 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                               <div>
                                 <h5 className="text-sm font-bold text-navy-950 font-serif">Portrait de l'Auteur</h5>
                                 <p className="text-[11px] text-stone-500">S'affiche dans la section détaillée "À propos de l'Auteur".</p>
-                                <p className="text-[10px] text-amber-600 font-medium">⚠️ Saisissez une URL web (ex: https://...) pour un affichage garanti sur Vercel.</p>
                               </div>
                               <input
                                 type="url"
                                 value={siteImages.authorPortrait}
                                 onChange={(e) => {
                                   updateSiteImages({ authorPortrait: e.target.value });
-                                  showToast("Portrait d'auteur mis à jour !");
+                                  showToast(
+                                    isSupabaseReady
+                                      ? "Portrait de l'auteur mis à jour et synchronisé sur tous les appareils ! ✅"
+                                      : "Portrait mis à jour localement ! ⚠️ (Supabase déconnecté)"
+                                  );
                                 }}
                                 placeholder="https://images.unsplash.com/photo-... ou URL d'hébergement d'images"
                                 className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs bg-white focus:ring-1 focus:ring-gold-500 focus:outline-none font-mono"
                               />
+                              <div className="text-[10px] font-sans">
+                                {isSupabaseReady ? (
+                                  <span className="text-green-600 font-semibold flex items-center">
+                                    ● Enregistré sur le cloud Supabase (Visible partout instantanément !)
+                                  </span>
+                                ) : (
+                                  <span className="text-amber-700 font-medium flex items-center">
+                                    ⚠️ Sauvegardé localement sur ce navigateur (Hors-ligne)
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -984,18 +1068,32 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                               <div>
                                 <h5 className="text-sm font-bold text-navy-950 font-serif">Arrière-plan Graphique Boursier</h5>
                                 <p className="text-[11px] text-stone-500">S'affiche en opacité tamisée comme arrière-plan sombre du Hero (Bannière principal).</p>
-                                <p className="text-[10px] text-amber-600 font-medium">⚠️ Saisissez une URL web (ex: https://...) pour un affichage garanti sur Vercel.</p>
                               </div>
                               <input
                                 type="url"
                                 value={siteImages.financialCharts}
                                 onChange={(e) => {
                                   updateSiteImages({ financialCharts: e.target.value });
-                                  showToast("Arrière-plan boursier mis à jour !");
+                                  showToast(
+                                    isSupabaseReady
+                                      ? "Arrière-plan mis à jour et synchronisé sur tous les appareils ! ✅"
+                                      : "Arrière-plan mis à jour localement ! ⚠️ (Supabase déconnecté)"
+                                  );
                                 }}
                                 placeholder="https://images.unsplash.com/photo-... ou URL d'hébergement d'images"
                                 className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs bg-white focus:ring-1 focus:ring-gold-500 focus:outline-none font-mono"
                               />
+                              <div className="text-[10px] font-sans">
+                                {isSupabaseReady ? (
+                                  <span className="text-green-600 font-semibold flex items-center">
+                                    ● Enregistré sur le cloud Supabase (Visible partout instantanément !)
+                                  </span>
+                                ) : (
+                                  <span className="text-amber-700 font-medium flex items-center">
+                                    ⚠️ Sauvegardé localement sur ce navigateur (Hors-ligne)
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>

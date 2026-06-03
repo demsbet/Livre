@@ -24,6 +24,7 @@ interface SiteContextType {
   testimonials: Testimonial[];
   faqItems: FAQItem[];
   siteImages: typeof DEFAULT_SITE_IMAGES;
+  isSupabaseReady: boolean;
   
   updateAuthorInfo: (info: Partial<typeof DEFAULT_AUTHOR_INFO>) => void;
   updateBookDetails: (details: Partial<typeof DEFAULT_BOOK_DETAILS>) => void;
@@ -749,6 +750,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
         testimonials,
         faqItems,
         siteImages,
+        isSupabaseReady,
         updateAuthorInfo,
         updateBookDetails,
         updateSiteImages,
