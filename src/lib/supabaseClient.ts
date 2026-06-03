@@ -20,6 +20,19 @@ function sanitizeUrl(url: string): string {
   while (clean.endsWith("/")) {
     clean = clean.substring(0, clean.length - 1).trim();
   }
+  
+  // Check if they appended /rest/v1 or rest/v1 and strip it
+  if (clean.endsWith("/rest/v1")) {
+    clean = clean.substring(0, clean.length - "/rest/v1".length).trim();
+  }
+  if (clean.endsWith("/auth/v1")) {
+    clean = clean.substring(0, clean.length - "/auth/v1".length).trim();
+  }
+  
+  // Remove trailing slashes again just in case
+  while (clean.endsWith("/")) {
+    clean = clean.substring(0, clean.length - 1).trim();
+  }
   return clean;
 }
 

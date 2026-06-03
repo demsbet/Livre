@@ -65,7 +65,7 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
     resetToDefaults
   } = useSite();
 
-  const [email, setEmail] = useState("");
+  const email = "admin@la-bourse-en-afrique.com";
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -168,6 +168,9 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+          }
         });
         if (error) throw error;
         
@@ -278,45 +281,28 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                     </div>
                     <h4 className="font-serif text-lg font-bold text-navy-950">
                       {isSupabaseReady 
-                        ? (isSignUpMode ? "Créer un Compte Administrateur" : "Connexion Administrateur Supabase")
+                        ? (isSignUpMode ? "Créer le Mot de Passe Administrateur" : "Connexion Administrateur Supabase")
                         : "Accès Administrateur Limité"
                       }
                     </h4>
                     <p className="text-xs text-stone-500 max-w-xs mx-auto leading-normal">
                       {isSupabaseReady 
-                        ? "Connectez-vous avec vos identifiants de compte Supabase Auth pour authentifier vos requêtes et outrepasser les règles de sécurité."
+                        ? "Saisissez votre mot de passe d'administration Supabase pour accéder à la console en direct."
                         : "Saisissez le mot de passe maître local pour modifier temporairement les textes du site."
                       }
                     </p>
                   </div>
 
                   <form onSubmit={handleLoginSubmit} className="space-y-4">
-                    {isSupabaseReady && (
-                      <div>
-                        <label htmlFor="admin-email" className="block text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1.5 font-mono">
-                          Adresse E-mail Admin
-                        </label>
-                        <input
-                          type="email"
-                          id="admin-email"
-                          required
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="votre-email@exemple.com"
-                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-gold-500 font-sans text-center"
-                        />
-                      </div>
-                    )}
-
                     <div>
                       <label htmlFor="admin-pass" className="block text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1.5 font-mono">
-                        {isSupabaseReady ? "Mot de passe de sécurité" : "Mot de passe d'administration"}
+                        {isSupabaseReady ? "Mot de passe de sécurité admin" : "Mot de passe d'administration"}
                       </label>
                       <input
                         type="password"
                         id="admin-pass"
                         required
-                        autoFocus={!isSupabaseReady}
+                        autoFocus
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
@@ -348,7 +334,7 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                         {isLoading 
                           ? "Chargement de la session..." 
                           : (isSupabaseReady 
-                              ? (isSignUpMode ? "S'enregistrer & Se connecter" : "Se connecter de manière sécurisée") 
+                              ? (isSignUpMode ? "Enregistrer pour la première fois" : "Se connecter") 
                               : "S'authentifier"
                             )
                         }
@@ -368,12 +354,12 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                         className="text-xs text-gold-650 hover:text-gold-700 font-bold underline transition-colors cursor-pointer"
                       >
                         {isSignUpMode 
-                          ? "Déjà enregistré ? Connectez-vous" 
-                          : "Première configuration ? S'enregistrer et créer un compte"
+                          ? "Déjà configuré ? Se connecter" 
+                          : "Première configuration ? Créer le mot de passe"
                         }
                       </button>
                       <p className="text-[10px] text-stone-400 leading-normal max-w-xs mx-auto">
-                        💡 <strong>Astuce :</strong> s'il s'agit de votre première connexion, cliquez sur <em>S'enregistrer</em> ci-dessus pour associer votre adresse e-mail comme Compte Administrateur dans votre instance Supabase.
+                        💡 <strong>Astuce :</strong> s'il s'agit de votre première connexion, cliquez sur <em>Créer le mot de passe</em> pour associer cet unique mot de passe à votre base de données Supabase.
                       </p>
                     </div>
                   )}
@@ -473,7 +459,7 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                           🛠️ COMMENT RÉSOUDRE CE PROBLÈME DE MANIÈRE DÉFINITIVE :
                         </p>
                         <p className="text-xs">
-                          <strong>Étape 1 :</strong> Assurez-vous d'être connecté à la console avec un vrai compte client Supabase. Si besoin, fermez ce panneau, rouvrez-le et utilisez l'onglet <em>"S'enregistrer et créer un compte"</em> pour créer votre accès.
+                          <strong>Étape 1 :</strong> Assurez-vous d'être connecté à la console avec le mot de passe administrateur sécurisé. Si besoin, fermez ce panneau, rouvrez-le et utilisez l'onglet <em>"Créer le mot de passe"</em> si c'est votre première connexion.
                         </p>
                         <p className="text-xs">
                           <strong>Étape 2 :</strong> Veillez à ce que vos tables acceptent l'écriture sécurisée pour les utilisateurs connectés. Copiez et collez le script ci-dessous dans votre tableau de bord <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-gold-600 font-semibold underline">Supabase &gt; SQL Editor</a>, puis cliquez sur <strong>Run</strong> :

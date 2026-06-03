@@ -85,6 +85,15 @@ const cleanEnvUrl = (url: string | undefined): string => {
   while (clean.endsWith("/")) {
     clean = clean.substring(0, clean.length - 1).trim();
   }
+  if (clean.endsWith("/rest/v1")) {
+    clean = clean.substring(0, clean.length - "/rest/v1".length).trim();
+  }
+  if (clean.endsWith("/auth/v1")) {
+    clean = clean.substring(0, clean.length - "/auth/v1".length).trim();
+  }
+  while (clean.endsWith("/")) {
+    clean = clean.substring(0, clean.length - 1).trim();
+  }
   return clean;
 };
 
