@@ -357,7 +357,11 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .from("author_info")
           .select("id")
           .limit(1)
-          .then(({ data }) => {
+          .then(({ data, error: selectError }) => {
+            if (selectError) {
+              console.error("[Supabase] Erreur lecture author_info ID:", selectError);
+              return;
+            }
             const payload = {
               name: next.name,
               role: next.role,
@@ -368,9 +372,26 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
               email: next.email
             };
             if (data && data.length > 0) {
-              supabase.from("author_info").update(payload).eq("id", data[0].id).then();
+              supabase.from("author_info")
+                .update(payload)
+                .eq("id", data[0].id)
+                .then(({ error: updateError }: any) => {
+                  if (updateError) {
+                    console.error("[Supabase] ÉCHEC mise à jour author_info (Vérifiez RLS) :", updateError);
+                  } else {
+                    console.log("[Supabase] Info auteur mise à jour avec succès !");
+                  }
+                });
             } else {
-              supabase.from("author_info").insert([payload]).then();
+              supabase.from("author_info")
+                .insert([payload])
+                .then(({ error: insertError }: any) => {
+                  if (insertError) {
+                    console.error("[Supabase] ÉCHEC insertion author_info (Vérifiez RLS) :", insertError);
+                  } else {
+                    console.log("[Supabase] Nouvelle info auteur insérée !");
+                  }
+                });
             }
           });
       }
@@ -387,7 +408,11 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .from("book_details")
           .select("id")
           .limit(1)
-          .then(({ data }) => {
+          .then(({ data, error: selectError }) => {
+            if (selectError) {
+              console.error("[Supabase] Erreur lecture book_details ID:", selectError);
+              return;
+            }
             const pricePaperVal = parseFloat(next.pricePaper?.replace(/[^\d.]/g, '') || "35");
             const originalPricePaperVal = parseFloat(next.originalPricePaper?.replace(/[^\d.]/g, '') || "45");
             
@@ -403,9 +428,26 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             };
             
             if (data && data.length > 0) {
-              supabase.from("book_details").update(payload).eq("id", data[0].id).then();
+              supabase.from("book_details")
+                .update(payload)
+                .eq("id", data[0].id)
+                .then(({ error: updateError }: any) => {
+                  if (updateError) {
+                    console.error("[Supabase] ÉCHEC mise à jour book_details (Vérifiez RLS) :", updateError);
+                  } else {
+                    console.log("[Supabase] Détails livre mis à jour avec succès !");
+                  }
+                });
             } else {
-              supabase.from("book_details").insert([payload]).then();
+              supabase.from("book_details")
+                .insert([payload])
+                .then(({ error: insertError }: any) => {
+                  if (insertError) {
+                    console.error("[Supabase] ÉCHEC insertion book_details (Vérifiez RLS) :", insertError);
+                  } else {
+                    console.log("[Supabase] Nouveaux détails livre insérés !");
+                  }
+                });
             }
           });
       }
@@ -422,7 +464,11 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .from("site_images")
           .select("id")
           .limit(1)
-          .then(({ data }) => {
+          .then(({ data, error: selectError }) => {
+            if (selectError) {
+              console.error("[Supabase] Erreur lecture site_images ID:", selectError);
+              return;
+            }
             const payload = {
               author_portrait: next.authorPortrait,
               book_cover: next.bookCover,
@@ -430,9 +476,26 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             };
             
             if (data && data.length > 0) {
-              supabase.from("site_images").update(payload).eq("id", data[0].id).then();
+              supabase.from("site_images")
+                .update(payload)
+                .eq("id", data[0].id)
+                .then(({ error: updateError }: any) => {
+                  if (updateError) {
+                    console.error("[Supabase] ÉCHEC de la sauvegarde de l'image (Vérifiez RLS !) :", updateError);
+                  } else {
+                    console.log("[Supabase] Image sauvegardée en base de données avec succès !");
+                  }
+                });
             } else {
-              supabase.from("site_images").insert([payload]).then();
+              supabase.from("site_images")
+                .insert([payload])
+                .then(({ error: insertError }: any) => {
+                  if (insertError) {
+                    console.error("[Supabase] ÉCHEC de la création de l'image (Vérifiez RLS !) :", insertError);
+                  } else {
+                    console.log("[Supabase] Nouvelle image insérée avec succès dans Supabase !");
+                  }
+                });
             }
           });
       }
