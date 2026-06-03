@@ -67,11 +67,32 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// Helper to clean environment config value
+const cleanEnvVar = (val: string | undefined): string => {
+  if (!val) return "";
+  let clean = val.trim();
+  if (clean.startsWith('"') && clean.endsWith('"')) {
+    clean = clean.substring(1, clean.length - 1).trim();
+  }
+  if (clean.startsWith("'") && clean.endsWith("'")) {
+    clean = clean.substring(1, clean.length - 1).trim();
+  }
+  return clean;
+};
+
+const cleanEnvUrl = (url: string | undefined): string => {
+  let clean = cleanEnvVar(url);
+  while (clean.endsWith("/")) {
+    clean = clean.substring(0, clean.length - 1).trim();
+  }
+  return clean;
+};
+
 // API: Safe dynamic retrieval of public VITE_SUPABASE credentials for client-side live syncing
 app.get("/api/supabase-config", (req, res) => {
   res.json({
-    supabaseUrl: process.env.VITE_SUPABASE_URL || "",
-    supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || "",
+    supabaseUrl: cleanEnvUrl(process.env.VITE_SUPABASE_URL),
+    supabaseAnonKey: cleanEnvVar(process.env.VITE_SUPABASE_ANON_KEY),
   });
 });
 

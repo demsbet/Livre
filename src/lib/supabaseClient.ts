@@ -1,8 +1,31 @@
 import { createClient } from "@supabase/supabase-js";
 
+function sanitizeConfig(val: string): string {
+  if (!val) return "";
+  let clean = val.trim();
+  // Remove surrounding double quotes
+  if (clean.startsWith('"') && clean.endsWith('"')) {
+    clean = clean.substring(1, clean.length - 1).trim();
+  }
+  // Remove surrounding single quotes
+  if (clean.startsWith("'") && clean.endsWith("'")) {
+    clean = clean.substring(1, clean.length - 1).trim();
+  }
+  return clean;
+}
+
+function sanitizeUrl(url: string): string {
+  let clean = sanitizeConfig(url);
+  // Remove trailing slashes
+  while (clean.endsWith("/")) {
+    clean = clean.substring(0, clean.length - 1).trim();
+  }
+  return clean;
+}
+
 // Retrieve the Supabase configuration from build-time environment variables as a legacy/static fallback
-const staticUrl = import.meta.env.VITE_SUPABASE_URL || "";
-const staticAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const staticUrl = sanitizeUrl(import.meta.env.VITE_SUPABASE_URL || "");
+const staticAnonKey = sanitizeConfig(import.meta.env.VITE_SUPABASE_ANON_KEY || "");
 
 export let supabaseUrl = staticUrl;
 export let supabaseAnonKey = staticAnonKey;
@@ -19,12 +42,14 @@ export let supabase: any = isSupabaseConfigured
  * Updates the Supabase configuration dynamically at runtime.
  */
 export function updateSupabaseConfig(url: string, anonKey: string) {
-  if (url && anonKey) {
-    supabaseUrl = url;
-    supabaseAnonKey = anonKey;
+  const cleanUrl = sanitizeUrl(url);
+  const cleanKey = sanitizeConfig(anonKey);
+  if (cleanUrl && cleanKey) {
+    supabaseUrl = cleanUrl;
+    supabaseAnonKey = cleanKey;
     isSupabaseConfigured = true;
-    supabase = createClient(url, anonKey);
-    console.log("[SupabaseClient] Supabase dynamically initialized successfully.");
+    supabase = createClient(cleanUrl, cleanKey);
+    console.log("[SupabaseClient] Supabase dynamically initialized successfully with sanitized values.");
   }
 }
 

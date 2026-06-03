@@ -26,6 +26,7 @@ import {
   Loader2
 } from "lucide-react";
 import { useSite } from "../context/SiteContext";
+import { supabase } from "../lib/supabaseClient";
 
 interface AdminPanelProps {
   isOpen: boolean;
@@ -64,9 +65,44 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
     resetToDefaults
   } = useSite();
 
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Auto-restore Supabase session on open or on page refresh
+  React.useEffect(() => {
+    if (isOpen && isSupabaseReady && supabase) {
+      supabase.auth.getSession().then(({ data: { session } }: any) => {
+        if (session?.user) {
+          setIsAuthenticated(true);
+        }
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+        if (session?.user) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      });
+
+      return () => {
+        subscription?.unsubscribe();
+      };
+    }
+  }, [isOpen, isSupabaseReady]);
+
+  const handleLogout = async () => {
+    if (isSupabaseReady && supabase) {
+      await supabase.auth.signOut();
+    }
+    setIsAuthenticated(false);
+    showToast("Déconnexion réussie !");
+  };
+
   const [activeTab, setActiveTab] = useState<TabType>("general");
   const [successToast, setSuccessToast] = useState("");
 
@@ -106,13 +142,61 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
     }
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === "admin") {
-      setIsAuthenticated(true);
-      setErrorMessage("");
-    } else {
-      setErrorMessage("Mot de passe incorrect");
+    setErrorMessage("");
+    setIsLoading(true);
+
+    if (!isSupabaseReady || !supabase) {
+      // Offline fallback: check the master "admin" password
+      if (password === "admin") {
+        setIsAuthenticated(true);
+        setErrorMessage("");
+        setIsLoading(false);
+        showToast("Authentifié localement !");
+      } else {
+        setErrorMessage("Mot de passe incorrect");
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Dynamic Supabase Auth Flow
+    try {
+      if (isSignUpMode) {
+        // Sign-up flow
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) throw error;
+        
+        if (data.session) {
+          setIsAuthenticated(true);
+          showToast("Compte créé et authentifié !");
+        } else {
+          showToast("Compte créé !");
+          setIsSignUpMode(false);
+          setPassword("");
+        }
+      } else {
+        // Sign-in flow
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        
+        if (data.session) {
+          setIsAuthenticated(true);
+          showToast("Connexion réussie !");
+        }
+      }
+    } catch (err: any) {
+      console.error("[AdminAuthError] Error during Auth operation:", err);
+      setErrorMessage(err.message || "Erreur d'authentification Supabase");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -193,23 +277,46 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                       <Lock className="w-5 h-5 text-gold-500" />
                     </div>
                     <h4 className="font-serif text-lg font-bold text-navy-950">
-                      Accès Administrateur Limité
+                      {isSupabaseReady 
+                        ? (isSignUpMode ? "Créer un Compte Administrateur" : "Connexion Administrateur Supabase")
+                        : "Accès Administrateur Limité"
+                      }
                     </h4>
                     <p className="text-xs text-stone-500 max-w-xs mx-auto leading-normal">
-                      Saisissez le mot de passe maître pour modifier dynamiquement les titres, prix, chapitres, avantages et témoignages.
+                      {isSupabaseReady 
+                        ? "Connectez-vous avec vos identifiants de compte Supabase Auth pour authentifier vos requêtes et outrepasser les règles de sécurité."
+                        : "Saisissez le mot de passe maître local pour modifier temporairement les textes du site."
+                      }
                     </p>
                   </div>
 
                   <form onSubmit={handleLoginSubmit} className="space-y-4">
+                    {isSupabaseReady && (
+                      <div>
+                        <label htmlFor="admin-email" className="block text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1.5 font-mono">
+                          Adresse E-mail Admin
+                        </label>
+                        <input
+                          type="email"
+                          id="admin-email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="votre-email@exemple.com"
+                          className="w-full bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-gold-500 font-sans text-center"
+                        />
+                      </div>
+                    )}
+
                     <div>
                       <label htmlFor="admin-pass" className="block text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1.5 font-mono">
-                        Mot de passe d'administration
+                        {isSupabaseReady ? "Mot de passe de sécurité" : "Mot de passe d'administration"}
                       </label>
                       <input
                         type="password"
                         id="admin-pass"
                         required
-                        autoFocus
+                        autoFocus={!isSupabaseReady}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
@@ -218,20 +325,58 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                     </div>
 
                     {errorMessage && (
-                      <p className="text-xs text-red-600 font-bold text-center flex items-center justify-center space-x-1">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        <span>{errorMessage}</span>
-                      </p>
+                      <div className="text-xs text-red-800 bg-red-50 p-3 rounded-lg border border-red-200 text-center flex flex-col items-center justify-center space-y-1 font-sans leading-normal">
+                        <div className="flex items-center space-x-1.5 font-semibold">
+                          <AlertCircle className="w-4 h-4 text-red-650 shrink-0" />
+                          <span>Échec de l'authentification</span>
+                        </div>
+                        <p className="text-[11px] font-normal text-red-700">{errorMessage}</p>
+                      </div>
                     )}
 
                     <button
                       type="submit"
-                      className="w-full flex items-center justify-center space-x-2 bg-navy-950 hover:bg-navy-900 text-gold-400 hover:text-white py-3 rounded-lg font-bold text-xs transition-colors cursor-pointer"
+                      disabled={isLoading}
+                      className="w-full flex items-center justify-center space-x-2 bg-navy-950 hover:bg-navy-900 text-gold-400 hover:text-white py-3 rounded-lg font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
                     >
-                      <Lock className="w-4 h-4" />
-                      <span>S'authentifier</span>
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-gold-400" />
+                      ) : (
+                        <Lock className="w-4 h-4 text-gold-500" />
+                      )}
+                      <span>
+                        {isLoading 
+                          ? "Chargement de la session..." 
+                          : (isSupabaseReady 
+                              ? (isSignUpMode ? "S'enregistrer & Se connecter" : "Se connecter de manière sécurisée") 
+                              : "S'authentifier"
+                            )
+                        }
+                      </span>
                     </button>
                   </form>
+
+                  {/* Account type toggle for user registration */}
+                  {isSupabaseReady && (
+                    <div className="text-center pt-3 border-t border-stone-100 flex flex-col space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSignUpMode(!isSignUpMode);
+                          setErrorMessage("");
+                        }}
+                        className="text-xs text-gold-650 hover:text-gold-700 font-bold underline transition-colors cursor-pointer"
+                      >
+                        {isSignUpMode 
+                          ? "Déjà enregistré ? Connectez-vous" 
+                          : "Première configuration ? S'enregistrer et créer un compte"
+                        }
+                      </button>
+                      <p className="text-[10px] text-stone-400 leading-normal max-w-xs mx-auto">
+                        💡 <strong>Astuce :</strong> s'il s'agit de votre première connexion, cliquez sur <em>S'enregistrer</em> ci-dessus pour associer votre adresse e-mail comme Compte Administrateur dans votre instance Supabase.
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
               </div>
             ) : (
@@ -281,6 +426,16 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                       <RotateCcw className="w-3.5 h-3.5" />
                       <span>Réinitialiser textes</span>
                     </button>
+                    {isSupabaseReady && (
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center space-x-1.5 p-2 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 rounded-lg text-[10px] font-bold transition-all border border-red-200/50 cursor-pointer"
+                        title="Se déconnecter de la session d'administration"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Se déconnecter (Auth)</span>
+                      </button>
+                    )}
                     <p className="text-[9px] text-stone-400 text-center leading-normal">
                       Les modifications sont actives en direct et enregistrées pour vos prochaines visites.
                     </p>
@@ -303,26 +458,28 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                       <div className="flex items-start space-x-2.5 text-red-800 font-semibold">
                         <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-sm font-bold">⚠️ Échec d'enregistrement en ligne dans votre Supabase</p>
+                          <p className="text-sm font-bold">⚠️ Échec d'enregistrement en ligne dans votre Supabase (Bloqué par RLS)</p>
                           <p className="font-normal text-red-700 mt-1">
-                            Vos modifications ont été prises en compte localement dans votre navigateur, mais ont été <strong>rejetées par votre base de données Supabase</strong>.
-                            Cela s'explique par les règles de sécurité RLS (Row Level Security) configurées dans votre Supabase qui interdisent les écritures pour les visiteurs anonymes actuels :
+                            Vos modifications ont été chargées localement mais ont été <strong>rejetées par votre base de données Supabase</strong>.
+                            Cela est dû au fait que vous n'êtes pas connecté ou que vos règlages de sécurité RLS interdisent les écritures aux utilisateurs non identifiés.
                           </p>
                           <p className="font-mono text-[11px] bg-red-100/60 p-2 rounded border border-red-200 text-red-900 mt-1.5 whitespace-pre-wrap font-bold">
-                            Code d'erreur : {lastError}
+                            Code d'erreur de la transaction : {lastError}
                           </p>
                         </div>
                       </div>
                       <div className="p-3 bg-white border border-red-100 rounded-lg space-y-2 text-stone-750 leading-relaxed font-sans">
                         <p className="font-bold text-navy-950 text-[11px] font-mono uppercase tracking-wider">
-                          🛠️ COMMENT RÉSOUDRE CE PROBLÈME EN 30 SECONDES :
+                          🛠️ COMMENT RÉSOUDRE CE PROBLÈME DE MANIÈRE DÉFINITIVE :
                         </p>
                         <p className="text-xs">
-                          Puisque l'authentification admin s'effectue via un simple mot de passe local de démonstration sans créer de comptes clients Supabase, vous devez autoriser le client web anonyme à écrire dans les tables de contenu. 
-                          Veuillez copier le script ci-dessous, aller sur votre tableau de bord <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-gold-600 font-semibold underline">Supabase &gt; SQL Editor</a>, coller ces requêtes et cliquer sur <strong>Run</strong> :
+                          <strong>Étape 1 :</strong> Assurez-vous d'être connecté à la console avec un vrai compte client Supabase. Si besoin, fermez ce panneau, rouvrez-le et utilisez l'onglet <em>"S'enregistrer et créer un compte"</em> pour créer votre accès.
+                        </p>
+                        <p className="text-xs">
+                          <strong>Étape 2 :</strong> Veillez à ce que vos tables acceptent l'écriture sécurisée pour les utilisateurs connectés. Copiez et collez le script ci-dessous dans votre tableau de bord <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-gold-600 font-semibold underline">Supabase &gt; SQL Editor</a>, puis cliquez sur <strong>Run</strong> :
                         </p>
                         <pre className="text-[10px] font-mono bg-stone-900 text-stone-100 p-3 rounded-md overflow-x-auto select-all max-h-40 leading-normal">
-{`-- Exécutez ce script dans Supabase > SQL Editor pour autoriser l'écriture anonyme :
+{`-- Permet d'effacer les politiques obsolètes et d'attribuer des droits d'écriture sécurisés aux administrateurs connectés :
 DROP POLICY IF EXISTS "admin_all_auteur" ON author_info;
 DROP POLICY IF EXISTS "admin_all_livre" ON book_details;
 DROP POLICY IF EXISTS "admin_all_chapitres" ON chapters;
@@ -331,16 +488,16 @@ DROP POLICY IF EXISTS "admin_all_temoignages" ON testimonials;
 DROP POLICY IF EXISTS "admin_all_faqs" ON faqs;
 DROP POLICY IF EXISTS "admin_all_site_images" ON site_images;
 
-CREATE POLICY "admin_all_auteur" ON author_info FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_livre" ON book_details FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_chapitres" ON chapters FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_avantages" ON benefits FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_temoignages" ON testimonials FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_faqs" ON faqs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_site_images" ON site_images FOR ALL USING (true) WITH CHECK (true);`}
+CREATE POLICY "admin_all_auteur" ON author_info FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_livre" ON book_details FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_chapitres" ON chapters FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_avantages" ON benefits FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_temoignages" ON testimonials FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_faqs" ON faqs FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_site_images" ON site_images FOR ALL TO authenticated USING (true) WITH CHECK (true);`}
                         </pre>
                         <p className="text-[11px] flex items-center justify-between mt-2 pt-2 border-t border-stone-100 font-bold text-emerald-700">
-                          <span>Une fois cliqué sur "Run" dans Supabase, réactualisez la page : vos modifications seront sauvegardées pour toujours !</span>
+                          <span>Une fois ces étapes faites, actualisez la page : vos modifications seront sauvegardées pour toujours !</span>
                           <button 
                             type="button" 
                             onClick={clearLastError} 
