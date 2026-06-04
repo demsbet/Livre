@@ -230,7 +230,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
               .then(() => console.log("Author name auto-migrated in Supabase"));
           }
 
-          setAuthorInfoState({
+          const authorInfoPayload = {
             name,
             role: row.role,
             bio,
@@ -238,7 +238,9 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             whatsappNumber: row.whatsapp_number,
             whatsappMessage,
             email: row.email,
-          });
+          };
+          setAuthorInfoState(authorInfoPayload);
+          localStorage.setItem("site_author_info", JSON.stringify(authorInfoPayload));
         }
 
         // 2. Fetch Book Details
@@ -249,7 +251,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
 
         if (!bookError && bookData && bookData.length > 0) {
           const row = bookData[0];
-          setBookDetailsState({
+          const bookDetailsPayload = {
             title: row.title,
             subtitle: row.subtitle,
             pricePaper: row.price_paper ? `${Math.round(row.price_paper)} €` : "35 €",
@@ -258,7 +260,9 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
             language: row.language,
             format: row.format,
             releaseYear: row.release_year,
-          });
+          };
+          setBookDetailsState(bookDetailsPayload);
+          localStorage.setItem("site_book_details", JSON.stringify(bookDetailsPayload));
         }
 
         // 3. Fetch Book Chapters
@@ -268,13 +272,15 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .order("number", { ascending: true });
 
         if (!chaptersError && chaptersData && chaptersData.length > 0) {
-          setBookChaptersState(chaptersData.map((row: any) => ({
+          const chaptersPayload = chaptersData.map((row: any) => ({
             id: row.id,
             number: row.number,
             title: row.title,
             description: row.description,
             highlights: row.highlights || []
-          })));
+          }));
+          setBookChaptersState(chaptersPayload);
+          localStorage.setItem("site_book_chapters", JSON.stringify(chaptersPayload));
         }
 
         // 4. Fetch Benefits
@@ -284,12 +290,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .order("id", { ascending: true });
 
         if (!benefitsError && benefitsData && benefitsData.length > 0) {
-          setBookBenefitsState(benefitsData.map((row: any) => ({
+          const benefitsPayload = benefitsData.map((row: any) => ({
             id: row.id,
             title: row.title,
             description: row.description,
             icon: row.icon
-          })));
+          }));
+          setBookBenefitsState(benefitsPayload);
+          localStorage.setItem("site_book_benefits", JSON.stringify(benefitsPayload));
         }
 
         // 5. Fetch Testimonials
@@ -299,15 +307,17 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .order("id", { ascending: true });
 
         if (!testimonialsError && testimonialsData && testimonialsData.length > 0) {
-          setTestimonialsState(testimonialsData.map((row: any) => ({
+          const testimonialsPayload = testimonialsData.map((row: any) => ({
             id: row.id,
             name: row.name,
             role: row.role,
             company: row.company,
             content: row.content,
-            avatarUrl: row.avatar_url,
+            avatar_url: row.avatar_url,
             rating: row.rating
-          })));
+          }));
+          setTestimonialsState(testimonialsPayload);
+          localStorage.setItem("site_testimonials", JSON.stringify(testimonialsPayload));
         }
 
         // 6. Fetch FAQs
@@ -317,11 +327,13 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           .order("id", { ascending: true });
 
         if (!faqsError && faqsData && faqsData.length > 0) {
-          setFaqItemsState(faqsData.map((row: any) => ({
+          const faqPayload = faqsData.map((row: any) => ({
             id: row.id,
             question: row.question,
             answer: row.answer
-          })));
+          }));
+          setFaqItemsState(faqPayload);
+          localStorage.setItem("site_faq_items", JSON.stringify(faqPayload));
         }
 
         // 7. Fetch Site Images
@@ -334,13 +346,15 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           const row = imagesData[0];
           const hasColumns = "book_cover_front" in row && "book_cover_back" in row;
           setHasDbFrontBack(hasColumns);
-          setSiteImagesState({
+          const imagesPayload = {
             authorPortrait: row.author_portrait,
             bookCover: row.book_cover,
             financialCharts: row.financial_charts,
             bookCoverFront: row.book_cover_front || row.book_cover || DEFAULT_SITE_IMAGES.bookCoverFront,
             bookCoverBack: row.book_cover_back || DEFAULT_SITE_IMAGES.bookCoverBack,
-          });
+          };
+          setSiteImagesState(imagesPayload);
+          localStorage.setItem("site_site_images", JSON.stringify(imagesPayload));
         }
       } catch (err) {
         console.error("Exception while fetching live Supabase data:", err);
@@ -350,48 +364,34 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     fetchAllLiveSiteData();
   }, []);
 
-  // Keep localStorage backup ONLY when Supabase is not configured to avoid local edits conflicts
+  // Sync state to localStorage immediately on any update to enable quick cached rendering
   useEffect(() => {
-    if (!isSupabaseReady) {
-      localStorage.setItem("site_author_info", JSON.stringify(authorInfo));
-    }
-  }, [authorInfo, isSupabaseReady]);
+    localStorage.setItem("site_author_info", JSON.stringify(authorInfo));
+  }, [authorInfo]);
 
   useEffect(() => {
-    if (!isSupabaseReady) {
-      localStorage.setItem("site_book_details", JSON.stringify(bookDetails));
-    }
-  }, [bookDetails, isSupabaseReady]);
+    localStorage.setItem("site_book_details", JSON.stringify(bookDetails));
+  }, [bookDetails]);
 
   useEffect(() => {
-    if (!isSupabaseReady) {
-      localStorage.setItem("site_book_chapters", JSON.stringify(bookChapters));
-    }
-  }, [bookChapters, isSupabaseReady]);
+    localStorage.setItem("site_book_chapters", JSON.stringify(bookChapters));
+  }, [bookChapters]);
 
   useEffect(() => {
-    if (!isSupabaseReady) {
-      localStorage.setItem("site_book_benefits", JSON.stringify(bookBenefits));
-    }
-  }, [bookBenefits, isSupabaseReady]);
+    localStorage.setItem("site_book_benefits", JSON.stringify(bookBenefits));
+  }, [bookBenefits]);
 
   useEffect(() => {
-    if (!isSupabaseReady) {
-      localStorage.setItem("site_testimonials", JSON.stringify(testimonials));
-    }
-  }, [testimonials, isSupabaseReady]);
+    localStorage.setItem("site_testimonials", JSON.stringify(testimonials));
+  }, [testimonials]);
 
   useEffect(() => {
-    if (!isSupabaseReady) {
-      localStorage.setItem("site_faq_items", JSON.stringify(faqItems));
-    }
-  }, [faqItems, isSupabaseReady]);
+    localStorage.setItem("site_faq_items", JSON.stringify(faqItems));
+  }, [faqItems]);
 
   useEffect(() => {
-    if (!isSupabaseReady) {
-      localStorage.setItem("site_site_images", JSON.stringify(siteImages));
-    }
-  }, [siteImages, isSupabaseReady]);
+    localStorage.setItem("site_site_images", JSON.stringify(siteImages));
+  }, [siteImages]);
 
   // Actions
   const updateAuthorInfo = (info: Partial<typeof DEFAULT_AUTHOR_INFO>) => {
