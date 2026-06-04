@@ -115,6 +115,8 @@ CREATE TABLE site_images (
     author_portrait TEXT NOT NULL,
     book_cover TEXT NOT NULL,
     financial_charts TEXT NOT NULL,
+    book_cover_front TEXT,
+    book_cover_back TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
@@ -307,12 +309,14 @@ VALUES
 ('faq-4', 'Le livre explique-t-il comment choisir concrètement sa Société de Bourse ?', 'Oui, un chapitre entier est dédié au comparatif des Sociétés de Bourse de la sous-région CEMAC, leurs frais de tenue de compte, et la procédure exacte pour y ouvrir un compte à distance en toute légalité.');
 
 -- 4.7 Images par défaut du site
-INSERT INTO site_images (id, author_portrait, book_cover, financial_charts)
+INSERT INTO site_images (id, author_portrait, book_cover, financial_charts, book_cover_front, book_cover_back)
 VALUES (
     'default',
     'https://raw.githubusercontent.com/dominiqueeteme237/la-bourse-en-afrique/main/src/assets/images/author_portrait_exact_v2_1780143348819.png',
     'https://raw.githubusercontent.com/dominiqueeteme237/la-bourse-en-afrique/main/src/assets/images/book_cover_1780131365477.png',
-    'https://raw.githubusercontent.com/dominiqueeteme237/la-bourse-en-afrique/main/src/assets/images/financial_charts_africa_1780131404194.png'
+    'https://raw.githubusercontent.com/dominiqueeteme237/la-bourse-en-afrique/main/src/assets/images/financial_charts_africa_1780131404194.png',
+    'https://raw.githubusercontent.com/dominiqueeteme237/la-bourse-en-afrique/main/src/assets/images/book_cover_1780131365477.png',
+    'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=600&q=80'
 );
 
 

@@ -25,6 +25,7 @@ interface SiteContextType {
   faqItems: FAQItem[];
   siteImages: typeof DEFAULT_SITE_IMAGES;
   isSupabaseReady: boolean;
+  hasDbFrontBack: boolean;
   lastError: string | null;
   clearLastError: () => void;
   
@@ -963,6 +964,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
         faqItems,
         siteImages,
         isSupabaseReady,
+        hasDbFrontBack,
         lastError,
         clearLastError,
         updateAuthorInfo,

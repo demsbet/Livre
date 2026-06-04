@@ -45,6 +45,7 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
     faqItems,
     siteImages,
     isSupabaseReady,
+    hasDbFrontBack,
     lastError,
     clearLastError,
     updateAuthorInfo,
@@ -480,7 +481,11 @@ CREATE POLICY "admin_all_chapitres" ON chapters FOR ALL TO authenticated USING (
 CREATE POLICY "admin_all_avantages" ON benefits FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "admin_all_temoignages" ON testimonials FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "admin_all_faqs" ON faqs FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "admin_all_site_images" ON site_images FOR ALL TO authenticated USING (true) WITH CHECK (true);`}
+CREATE POLICY "admin_all_site_images" ON site_images FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Ajout des colonnes de Première & Dernière de Couverture si absentes :
+ALTER TABLE site_images ADD COLUMN IF NOT EXISTS book_cover_front TEXT;
+ALTER TABLE site_images ADD COLUMN IF NOT EXISTS book_cover_back TEXT;`}
                         </pre>
                         <p className="text-[11px] flex items-center justify-between mt-2 pt-2 border-t border-stone-100 font-bold text-emerald-700">
                           <span>Une fois ces étapes faites, actualisez la page : vos modifications seront sauvegardées pour toujours !</span>
@@ -1204,6 +1209,25 @@ CREATE POLICY "admin_all_site_images" ON site_images FOR ALL TO authenticated US
                             </div>
                           </div>
                         </div>
+
+                        {isSupabaseReady && !hasDbFrontBack && (
+                          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2 text-xs text-amber-900 shadow-sm">
+                            <div className="flex items-center space-x-2 font-bold text-amber-950">
+                              <span className="text-sm">💡</span>
+                              <span>Colonnes de Couvertures manquantes dans Supabase</span>
+                            </div>
+                            <p className="leading-relaxed font-sans font-medium text-amber-800">
+                              Pour sauvegarder la <strong>Première et Dernière de Couverture</strong> de manière permanente dans votre base de données Supabase, veuillez ajouter ces deux colonnes à votre table <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">site_images</code>.
+                            </p>
+                            <p className="font-sans font-medium text-amber-800">
+                              Copiez et exécutez le script ci-dessous dans votre <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline font-bold text-amber-950">Console Supabase &gt; SQL Editor</a>, puis actualisez cette page :
+                            </p>
+                            <pre className="text-[10px] font-mono bg-stone-900 text-stone-100 p-2.5 rounded overflow-x-auto select-all max-h-32 shadow-inner">
+{`ALTER TABLE site_images ADD COLUMN IF NOT EXISTS book_cover_front TEXT;
+ALTER TABLE site_images ADD COLUMN IF NOT EXISTS book_cover_back TEXT;`}
+                            </pre>
+                          </div>
+                        )}
 
                         {/* 1b. Book Front Cover Image */}
                         <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-4">
