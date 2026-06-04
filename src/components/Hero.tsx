@@ -82,7 +82,7 @@ export default function Hero({ onOrderClick, onExploreClick }: HeroProps) {
               className="text-navy-100 text-base sm:text-lg md:text-xl font-light text-justify leading-relaxed max-w-2xl"
             >
               {bookDetails.subtitle}. Le guide pratique rédigé par{" "}
-              <strong className="text-gold-300 font-medium">Siewe de Kalambak Steeves</strong> pour démystifier la BVMAC, fructifier votre épargne et générer des dividendes durables.
+              <strong className="text-gold-300 font-medium">Steeves SIEWE DE KALAMBAK</strong> de la zone CEMAC pour démystifier la BVMAC, fructifier votre épargne et générer des dividendes durables.
             </motion.p>
 
             {/* Micro-Features Row */}
@@ -194,7 +194,7 @@ export default function Hero({ onOrderClick, onExploreClick }: HeroProps) {
 
                 <img
                   src={siteImages.bookCover}
-                  alt="La Bourse en Afrique - Livre par Siewe de Kalambak Steeves"
+                  alt="La Bourse en Afrique - Livre par Steeves SIEWE DE KALAMBAK"
                   className="w-full h-auto rounded-lg shadow-inner object-cover"
                   referrerPolicy="no-referrer"
                 />

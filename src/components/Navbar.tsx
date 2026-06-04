@@ -6,12 +6,14 @@
 import { useState, useEffect } from "react";
 import { Menu, X, BookOpen, ShoppingBag, CreditCard } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { useSite } from "../context/SiteContext";
 
 interface NavbarProps {
   onOrderClick: () => void;
 }
 
 export default function Navbar({ onOrderClick }: NavbarProps) {
+  const { authorInfo } = useSite();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { cartCount, setIsCartOpen } = useCart();
@@ -51,8 +53,8 @@ export default function Navbar({ onOrderClick }: NavbarProps) {
               <BookOpen className="text-navy-950 w-5.5 h-5.5 stroke-[2.2]" />
             </div>
             <div className="flex flex-col">
-              <span className="font-serif text-lg sm:text-xl font-bold tracking-wide text-white group-hover:text-gold-300 transition-colors">
-                S. de Kalambak
+              <span className="font-serif text-base sm:text-lg font-bold tracking-wide text-white group-hover:text-gold-300 transition-colors">
+                {authorInfo.name}
               </span>
               <span className="text-[10px] font-mono tracking-widest text-gold-400 uppercase -mt-1 font-semibold">
                 La Bourse en Afrique

@@ -1205,6 +1205,78 @@ CREATE POLICY "admin_all_site_images" ON site_images FOR ALL TO authenticated US
                           </div>
                         </div>
 
+                        {/* 1b. Book Front Cover Image */}
+                        <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-4">
+                          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                            <div className="w-20 h-28 shrink-0 bg-navy-950 rounded-lg border border-gold-500/20 overflow-hidden flex items-center justify-center relative shadow-md">
+                              <img
+                                src={(siteImages as any).bookCoverFront || siteImages.bookCover}
+                                alt="Aperçu première de couverture"
+                                className="max-w-full max-h-full object-contain"
+                                onError={(e) => {
+                                  (e.target as any).src = "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=120&q=50";
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1 space-y-2 w-full">
+                              <div>
+                                <h5 className="text-sm font-bold text-navy-950 font-serif">Première de Couverture (Face Avant)</h5>
+                                <p className="text-[11px] text-stone-500 font-sans font-medium">S'affiche dans le bloc de présentation détaillé du contenu du livre.</p>
+                              </div>
+                              <input
+                                type="url"
+                                value={(siteImages as any).bookCoverFront || ""}
+                                onChange={(e) => {
+                                  updateSiteImages({ bookCoverFront: e.target.value });
+                                  showToast(
+                                    isSupabaseReady
+                                      ? "Première de couverture mise à jour et synchronisée ! ✅"
+                                      : "Première de couverture mise à jour localement ! ⚠️"
+                                  );
+                                }}
+                                placeholder="https://images.unsplash.com/photo-... ou URL d'image"
+                                className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs bg-white focus:ring-1 focus:ring-gold-500 focus:outline-none font-mono"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 1c. Book Back Cover Image */}
+                        <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-4">
+                          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                            <div className="w-20 h-28 shrink-0 bg-navy-950 rounded-lg border border-gold-500/20 overflow-hidden flex items-center justify-center relative shadow-md">
+                              <img
+                                src={(siteImages as any).bookCoverBack || ""}
+                                alt="Aperçu dernière de couverture"
+                                className="max-w-full max-h-full object-contain"
+                                onError={(e) => {
+                                  (e.target as any).src = "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=120&q=50";
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1 space-y-2 w-full">
+                              <div>
+                                <h5 className="text-sm font-bold text-navy-950 font-serif">Dernière de Couverture (Face Arrière)</h5>
+                                <p className="text-[11px] text-stone-500 font-sans font-medium">S'affiche à côté de la face avant dans la section de présentation détaillée.</p>
+                              </div>
+                              <input
+                                type="url"
+                                value={(siteImages as any).bookCoverBack || ""}
+                                onChange={(e) => {
+                                  updateSiteImages({ bookCoverBack: e.target.value });
+                                  showToast(
+                                    isSupabaseReady
+                                      ? "Dernière de couverture mise à jour et synchronisée ! ✅"
+                                      : "Dernière de couverture mise à jour localement ! ⚠️"
+                                  );
+                                }}
+                                placeholder="https://images.unsplash.com/photo-... ou URL d'image"
+                                className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs bg-white focus:ring-1 focus:ring-gold-500 focus:outline-none font-mono"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
                         {/* 2. Author Portrait */}
                         <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-4">
                           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">

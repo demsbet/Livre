@@ -9,7 +9,7 @@ import { BookOpen, Check, Award, Compass, Sparkles } from "lucide-react";
 import { useSite } from "../context/SiteContext";
 
 export default function BookOverview() {
-  const { bookChapters, bookDetails } = useSite();
+  const { bookChapters, bookDetails, siteImages } = useSite();
   const [selectedChapterId, setSelectedChapterId] = useState(() => bookChapters[0]?.id || "");
 
   const activeChapterId = bookChapters.some(c => c.id === selectedChapterId)
@@ -169,6 +169,58 @@ export default function BookOverview() {
                 </div>
               </motion.div>
             </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Book Covers Showcase Zone */}
+        <div className="mt-20 bg-white border border-stone-200/60 rounded-3xl p-8 sm:p-14 shadow-2xl max-w-6xl mx-auto animate-fade-in">
+          <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
+            <h3 className="font-serif text-xl sm:text-2xl font-extrabold text-navy-950 uppercase tracking-widest text-[#9C824A]">
+              Avis d'Édition : Première & Dernière de Couverture
+            </h3>
+            <p className="text-stone-500 text-sm sm:text-base font-sans font-medium">
+              Découvrez la superbe qualité de finition et de conception graphique de l'ouvrage sur ses deux faces principales.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 items-center justify-items-center">
+            {/* Front Cover Card */}
+            <div className="flex flex-col items-center space-y-6 group w-full">
+              <div className="relative rounded-2xl overflow-hidden shadow-[0_30px_60px_-15px_rgba(10,25,47,0.4)] hover:shadow-[0_45px_75px_-10px_rgba(156,130,74,0.3)] transition-all duration-500 w-full max-w-[360px] sm:max-w-[420px] aspect-[3/4] bg-navy-950 flex items-center justify-center border-2 border-gold-500/30 group-hover:scale-[1.03] group-hover:rotate-1">
+                <img
+                  src={(siteImages as any).bookCoverFront || siteImages.bookCover}
+                  alt="Première de Couverture - Face Avant"
+                  className="w-full h-full object-cover select-none"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as any).src = "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=600&q=80";
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-navy-950/50 via-transparent to-transparent pointer-events-none" />
+              </div>
+              <span className="font-sans text-sm sm:text-base font-extrabold text-navy-950 bg-gold-450 hover:bg-gold-500 hover:text-white px-6 py-2.5 rounded-full transition-all duration-300 border border-gold-300 shadow-md">
+                📖 Première de Couverture (Face Avant)
+              </span>
+            </div>
+
+            {/* Back Cover Card */}
+            <div className="flex flex-col items-center space-y-6 group w-full">
+              <div className="relative rounded-2xl overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.55)] hover:shadow-[0_45px_75px_-10px_rgba(156,130,74,0.25)] transition-all duration-500 w-full max-w-[360px] sm:max-w-[420px] aspect-[3/4] bg-[#1a1616] flex items-center justify-center border-2 border-stone-800/40 group-hover:scale-[1.03] group-hover:-rotate-1">
+                <img
+                  src={(siteImages as any).bookCoverBack || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=1200&q=80"}
+                  alt="Dernière de Couverture - Face Arrière"
+                  className="w-full h-full object-cover select-none"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as any).src = "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=600&q=80";
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+              </div>
+              <span className="font-sans text-sm sm:text-base font-extrabold text-navy-950 bg-gold-450 hover:bg-gold-500 hover:text-white px-6 py-2.5 rounded-full transition-all duration-300 border border-gold-300 shadow-md">
+                📖 Dernière de Couverture (Face Arrière)
+              </span>
+            </div>
           </div>
         </div>
       </div>

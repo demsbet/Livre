@@ -9,12 +9,12 @@ import bookCover from "./assets/images/book_cover_1780131365477.png";
 import financialCharts from "./assets/images/financial_charts_africa_1780131404194.png";
 
 export const AUTHOR_INFO = {
-  name: "Siewe de Kalambak Steeves",
+  name: "Steeves SIEWE DE KALAMBAK",
   role: "Auteur Financier & Analyste en Investissements",
-  bio: "Siewe de Kalambak Steeves est un expert en finance de marché et ingénierie financière, passionné par la démocratisation de l'investissement en Afrique. Fort d'une expérience solide au cœur des écosystèmes d'Afrique francophone et internationale, il a conçu 'La Bourse en Afrique' pour offrir aux cadres, entrepreneurs et particuliers un guide pratique, pragmatique et décomplexé pour investir avec sérénité et succès.",
-  extendedBio: "Après avoir constaté le déficit d'éducation financière et le manque de publications adaptées à notre contexte économique d'Afrique Centrale (la BVMAC), Siewe a concentré ses efforts pour traduire des concepts complexes en stratégies actionnables. Il accompagne aujourd'hui des centaines d'investisseurs de la zone CEMAC et de la diaspora à travers ses écrits, conférences et programmes d'accompagnement d'élite.",
+  bio: "Steeves SIEWE DE KALAMBAK est un expert en finance de marché et ingénierie financière, passionné par la démocratisation de l'investissement en Afrique. Fort d'une expérience solide au cœur des écosystèmes d'Afrique francophone et internationale, il a conçu 'La Bourse en Afrique' pour offrir aux cadres, entrepreneurs et particuliers un guide pratique, pragmatique et décomplexé pour investir avec sérénité et succès.",
+  extendedBio: "Après avoir constaté le déficit d'éducation financière et le manque de publications adaptées à notre contexte économique d'Afrique Centrale (la BVMAC), Steeves a concentré ses efforts pour traduire des concepts complexes en stratégies actionnables. Il accompagne aujourd'hui des centaines d'investisseurs de la zone CEMAC et de la diaspora à travers ses écrits, conférences et programmes d'accompagnement d'élite.",
   whatsappNumber: "+33 6 25 25 31 43", 
-  whatsappMessage: "Bonjour M. Siewe de Kalambak Steeves, je souhaite commander votre livre 'La Bourse en Afrique'.",
+  whatsappMessage: "Bonjour M. Steeves SIEWE DE KALAMBAK, je souhaite commander votre livre 'La Bourse en Afrique'.",
   email: "kalambaksteeves@yahoo.fr",
 };
 
@@ -173,7 +173,7 @@ export const TESTIMONIALS: Testimonial[] = [
     name: "Dr. Sandrine Ngo Mbalke",
     role: "Médecin Généraliste",
     company: "Yaoundé, Cameroun",
-    content: "Un ouvrage exceptionnel de clarté sur la bourse d'Afrique Centrale. M. Siewe de Kalambak Steeves allie rigueur scientifique et fluidité d'écriture. Mon seul regret est de ne pas l'avoir lu plus tôt.",
+    content: "Un ouvrage exceptionnel de clarté sur la bourse d'Afrique Centrale. M. Steeves SIEWE DE KALAMBAK allie rigueur scientifique et fluidité d'écriture. Mon seul regret est de ne pas l'avoir lu plus tôt.",
     avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&h=150&q=80",
     rating: 5
   },
@@ -215,5 +215,7 @@ export const SITE_IMAGES = {
   authorPortrait,
   bookCover,
   financialCharts,
+  bookCoverFront: bookCover,
+  bookCoverBack: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=600&q=80",
 };
 

@@ -70,6 +70,12 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
         if (parsed.email === "contact@siewe-finance.com") {
           parsed.email = "kalambaksteeves@yahoo.fr";
         }
+        if (parsed.name === "Siewe de Kalambak Steeves") {
+          parsed.name = "Steeves SIEWE DE KALAMBAK";
+          parsed.bio = parsed.bio?.replace(/Siewe de Kalambak Steeves/g, "Steeves SIEWE DE KALAMBAK");
+          parsed.extendedBio = parsed.extendedBio?.replace(/Siewe/g, "Steeves");
+          parsed.whatsappMessage = parsed.whatsappMessage?.replace(/Siewe de Kalambak Steeves/g, "Steeves SIEWE DE KALAMBAK");
+        }
         return parsed;
       }
       return DEFAULT_AUTHOR_INFO;
@@ -148,6 +154,13 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
         if (parsed.financialCharts?.startsWith("/src/assets/")) {
           parsed.financialCharts = DEFAULT_SITE_IMAGES.financialCharts;
         }
+        // Fallbacks for front & back covers in localStorage if not defined
+        if (!parsed.bookCoverFront) {
+          parsed.bookCoverFront = DEFAULT_SITE_IMAGES.bookCoverFront;
+        }
+        if (!parsed.bookCoverBack) {
+          parsed.bookCoverBack = DEFAULT_SITE_IMAGES.bookCoverBack;
+        }
         return parsed;
       }
       return DEFAULT_SITE_IMAGES;
@@ -158,6 +171,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
 
   const [isSupabaseReady, setIsSupabaseReady] = useState(db.isSupabaseConfigured);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [hasDbFrontBack, setHasDbFrontBack] = useState(false);
   const clearLastError = () => setLastError(null);
 
   // Load live data from Supabase on startup
@@ -192,13 +206,36 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
         
         if (!authorError && authorData && authorData.length > 0) {
           const row = authorData[0];
+          let name = row.name;
+          let bio = row.bio;
+          let extendedBio = row.extended_bio;
+          let whatsappMessage = row.whatsapp_message;
+          
+          if (name === "Siewe de Kalambak Steeves") {
+            name = "Steeves SIEWE DE KALAMBAK";
+            bio = bio?.replace(/Siewe de Kalambak Steeves/g, "Steeves SIEWE DE KALAMBAK");
+            extendedBio = extendedBio?.replace(/Siewe/g, "Steeves");
+            whatsappMessage = whatsappMessage?.replace(/Siewe de Kalambak Steeves/g, "Steeves SIEWE DE KALAMBAK");
+            
+            // Automatically update the record in Supabase so the DB is corrected!
+            supabase.from("author_info")
+              .update({
+                name,
+                bio,
+                extended_bio: extendedBio,
+                whatsapp_message: whatsappMessage
+              })
+              .eq("id", row.id)
+              .then(() => console.log("Author name auto-migrated in Supabase"));
+          }
+
           setAuthorInfoState({
-            name: row.name,
+            name,
             role: row.role,
-            bio: row.bio,
-            extendedBio: row.extended_bio,
+            bio,
+            extendedBio,
             whatsappNumber: row.whatsapp_number,
-            whatsappMessage: row.whatsapp_message,
+            whatsappMessage,
             email: row.email,
           });
         }
@@ -294,10 +331,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
 
         if (!imagesError && imagesData && imagesData.length > 0) {
           const row = imagesData[0];
+          const hasColumns = "book_cover_front" in row && "book_cover_back" in row;
+          setHasDbFrontBack(hasColumns);
           setSiteImagesState({
             authorPortrait: row.author_portrait,
             bookCover: row.book_cover,
-            financialCharts: row.financial_charts
+            financialCharts: row.financial_charts,
+            bookCoverFront: row.book_cover_front || row.book_cover || DEFAULT_SITE_IMAGES.bookCoverFront,
+            bookCoverBack: row.book_cover_back || DEFAULT_SITE_IMAGES.bookCoverBack,
           });
         }
       } catch (err) {
@@ -481,11 +522,15 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
               console.error("[Supabase] Erreur lecture site_images ID:", selectError);
               return;
             }
-            const payload = {
+            const payload: any = {
               author_portrait: next.authorPortrait,
               book_cover: next.bookCover,
               financial_charts: next.financialCharts
             };
+            if (hasDbFrontBack) {
+              payload.book_cover_front = next.bookCoverFront;
+              payload.book_cover_back = next.bookCoverBack;
+            }
             
             if (data && data.length > 0) {
               supabase.from("site_images")
@@ -889,11 +934,15 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
         }
 
         const { data: imagesData } = await supabase.from("site_images").select("id").limit(1);
-        const imagesPayload = {
+        const imagesPayload: any = {
           author_portrait: DEFAULT_SITE_IMAGES.authorPortrait,
           book_cover: DEFAULT_SITE_IMAGES.bookCover,
           financial_charts: DEFAULT_SITE_IMAGES.financialCharts
         };
+        if (hasDbFrontBack) {
+          imagesPayload.book_cover_front = DEFAULT_SITE_IMAGES.bookCoverFront;
+          imagesPayload.book_cover_back = DEFAULT_SITE_IMAGES.bookCoverBack;
+        }
         if (imagesData && imagesData.length > 0) {
           await supabase.from("site_images").update(imagesPayload).eq("id", imagesData[0].id);
         }
