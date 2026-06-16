@@ -66,6 +66,14 @@ export default function Contact() {
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
+  // Auto-fill the cart with 1 copy of the standard Livre Papier Premium when on the Caisse page
+  // so the user never sees a blank cart / disabled button.
+  useEffect(() => {
+    if (cartItems.length === 0) {
+      addToCart("paper");
+    }
+  }, []);
+
   const toFcfa = (euro: number) => {
     return (euro * 656).toLocaleString("fr-FR");
   };
@@ -156,7 +164,7 @@ Je souhaite finaliser mon paiement via Mobile Money ou Virement Bancaire. Merci 
     if (!city.trim()) currentErrors.push("Veuillez renseigner votre ville pour la livraison physique.");
 
     if (cartItems.length === 0) {
-      currentErrors.push("Votre panier est actuellement vide. Veuillez y ajouter un article.");
+      addToCart("paper");
     }
 
     if (currentErrors.length > 0) {
@@ -710,10 +718,7 @@ Je souhaite finaliser mon paiement via Mobile Money ou Virement Bancaire. Merci 
                     <div className="pt-6 border-t border-stone-200/50">
                       <button
                         type="submit"
-                        disabled={cartItems.length === 0}
-                        className={`w-full flex items-center justify-center space-x-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-emerald-600/10 cursor-pointer transition-all ${
-                          cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : "hover:-translate-y-0.5"
-                        }`}
+                        className="w-full flex items-center justify-center space-x-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-emerald-600/10 cursor-pointer transition-all hover:-translate-y-0.5"
                       >
                         <Phone className="w-4.5 h-4.5" />
                         <span>Créer mon bon & Finaliser sur WhatsApp</span>
