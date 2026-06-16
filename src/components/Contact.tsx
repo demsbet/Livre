@@ -336,14 +336,10 @@ Je souhaite finaliser mon paiement via Mobile Money ou Virement Bancaire. Merci 
             }
           })
           .catch((err) => {
-            if (err.message === "STATIC_HOST_FALLBACK" || err.message.includes("is not valid JSON") || err.message.includes("Unexpected token")) {
-              console.log("[Checkout] Serveur indisponible ou mode statique détecté. Utilisation du mode de secours client...");
-              runClientFallback();
-            } else {
-              console.error("[Checkout] Échec de la requête de paiement :", err);
-              setErrors([err.message || "Impossible de joindre le serveur de facturation ou messagerie de messagerie."]);
-              setIsProcessing(false);
-            }
+            console.log("[Checkout] Erreur de communication API ou mode d'hébergement statique détecté. Utilisation du mode de secours autonome client...", err);
+            // On a static host (like Vercel), any error contacting the server-side route or parsing its output
+            // is recovered immediately by registering the order from the client and proceeding directly.
+            runClientFallback();
           });
       }
     }, 1200);
