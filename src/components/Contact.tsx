@@ -24,10 +24,12 @@ import {
   Minus
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { useSite } from "../context/SiteContext";
 import { AUTHOR_INFO } from "../data";
 import * as db from "../lib/supabaseClient";
 
 export default function Contact() {
+  const { authorInfo } = useSite();
   const {
     cartItems,
     addToCart,
@@ -66,6 +68,32 @@ export default function Contact() {
 
   const toFcfa = (euro: number) => {
     return (euro * 656).toLocaleString("fr-FR");
+  };
+
+  const generateWhatsAppUrl = (txnId: string) => {
+    const rawNumber = authorInfo?.whatsappNumber || AUTHOR_INFO.whatsappNumber;
+    const cleanNumber = rawNumber.replace(/[^0-9]/g, "");
+    
+    const itemsSummary = cartItems.map(item => `• ${item.name} (x${item.quantity}) - ${item.price * item.quantity} €`).join("\n");
+    
+    const message = `Bonjour M. Steeves SIEWE DE KALAMBAK,
+Je viens de valider mon bon de commande sur le site internet !
+
+🧾 Détails de la commande [ID: ${txnId}] :
+${itemsSummary}
+• Frais de livraison (${country}) : +${getShippingCost()} €
+• MONTANT TOTAL : ${totalWithShipping} € (soit env. ${toFcfa(totalWithShipping)} FCFA)
+
+📍 Informations de livraison :
+• Nom complet : ${name}
+• Email : ${email}
+• WhatsApp de coordination : ${phone}
+• Pays : ${country}
+• Ville / Quartier : ${city}
+
+Je souhaite finaliser mon paiement via Mobile Money ou Virement Bancaire. Merci de me guider pour la suite !`;
+
+    return `https://api.whatsapp.com/send?phone=${cleanNumber}&text=${encodeURIComponent(message)}`;
   };
 
   // Get shipping price dynamically based on country
@@ -117,7 +145,6 @@ export default function Contact() {
     if (cardNumber.startsWith("5")) return "mastercard";
     return "generic";
   };
-
   const handleFormSubmit = (e: FormEvent) => {
     e.preventDefault();
     const currentErrors: string[] = [];
@@ -127,27 +154,6 @@ export default function Contact() {
     if (!email.trim() || !email.includes("@")) currentErrors.push("Veuillez saisir une adresse email valide.");
     if (!phone.trim()) currentErrors.push("Veuillez saisir votre numéro WhatsApp pour la coordination.");
     if (!city.trim()) currentErrors.push("Veuillez renseigner votre ville pour la livraison physique.");
-
-    // Card Verification validation
-    const cleanCardNum = cardNumber.replace(/\s/g, "");
-    if (cleanCardNum.length !== 16) {
-      currentErrors.push("Le numéro de carte bancaire doit comporter 16 chiffres.");
-    }
-    const cleanExpiry = cardExpiry.replace(/\//g, "");
-    if (cleanExpiry.length !== 4) {
-      currentErrors.push("La date d'expiration de la carte doit être sous le format MM/YY.");
-    } else {
-      const month = parseInt(cleanExpiry.slice(0, 2), 10);
-      if (month < 1 || month > 12) {
-        currentErrors.push("Le mois d'expiration de la carte est invalide.");
-      }
-    }
-    if (cardCvv.replace(/\D/g, "").length !== 3) {
-      currentErrors.push("Le code de sécurité CVV doit comporter 3 chiffres.");
-    }
-    if (!cardHolder.trim()) {
-      currentErrors.push("Veuillez saisir le nom du titulaire de la carte.");
-    }
 
     if (cartItems.length === 0) {
       currentErrors.push("Votre panier est actuellement vide. Veuillez y ajouter un article.");
@@ -175,9 +181,6 @@ export default function Contact() {
         return;
       }
 
-      const cleanCardNum = cardNumber.replace(/\s/g, "");
-      const cardLastFour = cleanCardNum.slice(-4) || "0000";
-
       // 1. Insérer la commande principale dans la table 'orders'
       const { data: orderData, error: orderError } = await db.supabase
         .from("orders")
@@ -191,9 +194,9 @@ export default function Contact() {
             delivery_country: country,
             total_amount: totalWithShipping,
             shipping_fee: getShippingCost(),
-            payment_status: "paid",
-            card_holder: cardHolder,
-            card_last_four: cardLastFour
+            payment_status: "pending_whatsapp",
+            card_holder: "WhatsApp Order",
+            card_last_four: "0000"
           }
         ])
         .select()
@@ -235,11 +238,11 @@ export default function Contact() {
     if (!isProcessing) return;
 
     const steps = [
-      "Initialisation de la passerelle de paiement sécurisée bancaire...",
-      "Chiffrement cryptographique SSL/TLS de niveau militaire (AES-256)...",
-      "Interrogation du protocole 3-D Secure de l'établissement émetteur...",
-      "Vérification du solde et autorisation bancaire accordée...",
-      "Validation de l'achat et enregistrement de votre commande d'auteur..."
+      "Vérification des coordonnées de livraison...",
+      "Calcul des frais d'expédition CEMAC...",
+      "Génération du bon de commande unique...",
+      "Enregistrement sécurisé de votre commande...",
+      "Génération de l'accès au canal de paiement WhatsApp..."
     ];
 
     let currentStepIdx = 0;
@@ -267,11 +270,7 @@ export default function Contact() {
             city,
             cartItems,
             totalAmount: totalWithShipping,
-            shippingFee: getShippingCost(),
-            cardNumber: cardNumber.replace(/\s/g, ""),
-            cardHolder,
-            cardExpiry,
-            cardCvv
+            shippingFee: getShippingCost()
           })
         })
           .then((res) => {
@@ -296,7 +295,7 @@ export default function Contact() {
               // Maintain local/secondary database recording for absolute safety
               saveOrderToSupabase(data.transactionId);
             } else {
-              setErrors([data.error || "La passerelle de paiement a refusé la transaction standard."]);
+              setErrors([data.error || "La passerelle de commande a refusé la demande."]);
               setIsProcessing(false);
             }
           })
@@ -667,168 +666,42 @@ export default function Contact() {
                       </div>
                     </div>
 
-                    {/* STEP 2: Visa & MasterCard Interactive GUI Premium layout */}
-                    <div className="space-y-6 pt-4 border-t border-stone-200/50">
+                    {/* STEP 2: Instruction de paiement par WhatsApp / Mobile Money */}
+                    <div className="space-y-4 pt-4 border-t border-stone-200/50">
                       <div className="flex items-center space-x-2">
-                        <div className="w-6 h-6 rounded-full bg-navy-950 text-white font-mono text-xs font-bold flex items-center justify-center">2</div>
+                        <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-mono text-xs font-bold flex items-center justify-center">2</div>
                         <h4 className="font-serif text-base font-bold text-navy-950">
-                          Saisie de la Carte Bancaire Sécurisée (SSL)
+                          Méthodes de Paiement Supportées sur WhatsApp
                         </h4>
                       </div>
 
-                      {/* GOLD & NAVY PLASTIC SIMULATOR CARD */}
-                      <div className="w-full max-w-sm mx-auto perspective-1000 my-4">
-                        <motion.div
-                          animate={{ rotateY: isCardFlipped ? 180 : 0 }}
-                          transition={{ duration: 0.6 }}
-                          className="w-full h-48 rounded-2xl bg-gradient-to-br from-navy-950 via-[#1e293b] to-black text-white p-6 shadow-2xl relative select-none transform-style-3d preserve-3d"
-                        >
-                          {/* CARD FRONT SIDE PANEL */}
-                          <div className={`absolute inset-0 w-full h-full p-6 flex flex-col justify-between backface-hidden ${isCardFlipped ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-                            <div className="flex justify-between items-start">
-                              <div className="flex flex-col">
-                                <span className="font-serif text-[11px] tracking-widest text-gold-400 font-bold">CARTE D'ÉPARGNANT ÉLITE</span>
-                                <span className="text-[8px] font-mono tracking-widest text-[#94a3b8] uppercase font-semibold">LA BOURSE EN AFRIQUE</span>
-                              </div>
-                              {/* Glowing chip illustration */}
-                              <div className="w-10 h-7 rounded-md bg-gradient-to-tr from-yellow-300 via-amber-400 to-yellow-200 p-1 flex flex-col justify-between relative shadow-inner overflow-hidden border border-amber-600/30">
-                                <div className="border-b border-black/10 w-full h-[1px]" />
-                                <div className="border-b border-black/10 w-full h-[1px]" />
-                                <div className="border-b border-black/10 w-full h-[1px]" />
-                                <div className="absolute inset-y-0 left-1/3 w-[1px] bg-black/10" />
-                                <div className="absolute inset-y-0 right-1/3 w-[1px] bg-black/10" />
-                              </div>
-                            </div>
-
-                            {/* Center styled Card Numbers */}
-                            <div className="font-mono text-base tracking-widest text-gold-100 text-center py-2 filter drop-shadow">
-                              {cardNumber || "•••• •••• •••• ••••"}
-                            </div>
-
-                            {/* Card Holder and exp details */}
-                            <div className="flex justify-between items-end">
-                              <div className="space-y-0.5 truncate max-w-[65%]">
-                                <span className="text-[7.5px] font-mono text-[#94a3b8] tracking-widest uppercase block">TITULAIRE DE LA CARTE</span>
-                                <span className="font-sans text-xs font-semibold tracking-wide text-white block uppercase truncate">
-                                  {cardHolder || "MARC N'GUESSAN"}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-4 shrink-0">
-                                <div className="space-y-0.5 text-right">
-                                  <span className="text-[7.5px] font-mono text-[#94a3b8] tracking-widest block font-bold">EXPIRE</span>
-                                  <span className="font-mono text-xs text-white block">{cardExpiry || "MM/YY"}</span>
-                                </div>
-                                <div className="h-8 flex items-center justify-center">
-                                  {getCardIssuer() === "visa" && (
-                                    <span className="font-sans font-black italic text-lg text-blue-400">VISA</span>
-                                  )}
-                                  {getCardIssuer() === "mastercard" && (
-                                    <div className="flex -space-x-2">
-                                      <div className="w-5 h-5 rounded-full bg-red-500 opacity-90" />
-                                      <div className="w-5 h-5 rounded-full bg-yellow-500 opacity-90" />
-                                    </div>
-                                  )}
-                                  {getCardIssuer() === "generic" && (
-                                    <span className="font-mono text-[9px] text-[#94a3b8] border border-white/20 px-1.5 py-0.5 rounded uppercase">BANK</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                      <div className="bg-[#FAF9F5] border border-stone-200/65 rounded-xl p-5 space-y-4">
+                        <p className="text-xs text-stone-600 leading-relaxed">
+                          La livraison du livre papier est coordonnée en direct. Une fois vos informations de livraison validées ci-dessus, vous serez connecté avec l'auteur pour régler via l'un des canaux sécurisés ci-dessous :
+                        </p>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="bg-white border border-stone-200/50 rounded-lg p-3 text-center space-y-1">
+                            <div className="text-xs font-bold font-serif text-amber-800">Mobile Money</div>
+                            <div className="text-[10px] text-stone-500">Orange Money, MTN MoMo, Wave</div>
                           </div>
-
-                          {/* CARD BACK SIDE PANEL FOR CVV */}
-                          <div className={`absolute inset-0 w-full h-full bg-gradient-to-br from-[#0f172a] to-black rounded-2xl flex flex-col justify-between py-6 rotateY-180 backface-hidden ${isCardFlipped ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-                            <div className="w-full h-10 bg-black" />
-                            <div className="px-6 space-y-4">
-                              <div className="flex justify-between items-center bg-[#1e293b] p-1.5 rounded border border-white/5">
-                                <span className="w-3/4 h-6 bg-gradient-to-r from-stone-300 via-stone-400 to-stone-300 rounded block" />
-                                <span className="font-mono text-sm tracking-widest text-[#0f172a] font-extrabold px-2 py-0.5 bg-white rounded">
-                                  {cardCvv || "•••"}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-[6.5px] font-mono text-stone-400 max-w-[70%] leading-relaxed">
-                                  Cette carte est strictement personnelle. Toute utilisation frauduleuse fera l'objet de poursuites COSUMAF immédiates.
-                                </span>
-                                <span className="text-xs font-serif font-black italic tracking-wide text-gold-400">CEMAC SECURE</span>
-                              </div>
-                            </div>
+                          
+                          <div className="bg-white border border-stone-200/50 rounded-lg p-3 text-center space-y-1">
+                            <div className="text-xs font-bold font-serif text-amber-800">Virement Bancaire</div>
+                            <div className="text-[10px] text-stone-500">RIB Local CEMAC / UEMOA</div>
                           </div>
-                        </motion.div>
-                      </div>
-
-                      {/* Card inputs grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* Name on card */}
-                        <div>
-                          <label htmlFor="card-holder-input" className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-1.5 font-mono">
-                            Titulaire de la carte *
-                          </label>
-                          <input
-                            type="text"
-                            id="card-holder-input"
-                            required
-                            value={cardHolder}
-                            onChange={(e) => setCardHolder(e.target.value)}
-                            placeholder="M. MARC N'GUESSAN"
-                            className="w-full bg-white border border-stone-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-gold-500 uppercase"
-                          />
-                        </div>
-
-                        {/* Card number inputs */}
-                        <div>
-                          <label htmlFor="card-number-input" className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-1.5 font-mono">
-                            Numéro de carte *
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              id="card-number-input"
-                              required
-                              value={cardNumber}
-                              onChange={(e) => handleCardNumberChange(e.target.value)}
-                              placeholder="4152 •••• •••• ••••"
-                              className="w-full bg-white border border-stone-200 rounded-lg pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-gold-500"
-                            />
-                            <div className="absolute left-3.5 top-1/2 transform -translate-y-1/2">
-                              <CreditCard className="w-4 h-4 text-stone-400" />
-                            </div>
+                          
+                          <div className="bg-white border border-stone-200/50 rounded-lg p-3 text-center space-y-1">
+                            <div className="text-xs font-bold font-serif text-amber-800">Paiement Manuel</div>
+                            <div className="text-[10px] text-stone-500 font-sans">À la remise (Selon la ville)</div>
                           </div>
                         </div>
 
-                        {/* Expiry MM/YY input */}
-                        <div>
-                          <label htmlFor="card-expiry-input" className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-1.5 font-mono">
-                            Date d'expiration *
-                          </label>
-                          <input
-                            type="text"
-                            id="card-expiry-input"
-                            required
-                            placeholder="MM/YY"
-                            value={cardExpiry}
-                            onChange={(e) => handleExpiryChange(e.target.value)}
-                            className="w-full bg-white border border-stone-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-gold-500 text-center"
-                          />
-                        </div>
-
-                        {/* Card security CVV input */}
-                        <div>
-                          <label htmlFor="card-cvv-input" className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-1.5 font-mono">
-                            Code CVV/CVC *
-                          </label>
-                          <input
-                            type="password"
-                            id="card-cvv-input"
-                            maxLength={3}
-                            required
-                            value={cardCvv}
-                            onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 3))}
-                            onFocus={() => setIsCardFlipped(true)}
-                            onBlur={() => setIsCardFlipped(false)}
-                            placeholder="•••"
-                            className="w-full bg-white border border-stone-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-gold-500 text-center"
-                          />
+                        <div className="flex items-start space-x-2 bg-emerald-50 border border-emerald-100 p-3 rounded-lg">
+                          <ShieldCheck className="w-4.5 h-4.5 text-emerald-600 shrink-0 mt-0.5" />
+                          <p className="text-[11px] text-emerald-800 leading-relaxed">
+                            <strong>Avis de l'Auteur :</strong> Ce canal direct garantit un accompagnement sur mesure pour vos besoins de livraison express sans intermédiaires de paiement complexes.
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -838,15 +711,15 @@ export default function Contact() {
                       <button
                         type="submit"
                         disabled={cartItems.length === 0}
-                        className={`w-full flex items-center justify-center space-x-2.5 bg-navy-950 hover:bg-navy-900 border border-gold-500/30 text-gold-400 hover:text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-navy-950/10 cursor-pointer transition-all ${
+                        className={`w-full flex items-center justify-center space-x-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-emerald-600/10 cursor-pointer transition-all ${
                           cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : "hover:-translate-y-0.5"
                         }`}
                       >
-                        <Lock className="w-4.5 h-4.5" />
-                        <span>Régler {totalWithShipping} € par Carte Bancaire</span>
+                        <Phone className="w-4.5 h-4.5" />
+                        <span>Créer mon bon & Finaliser sur WhatsApp</span>
                       </button>
                       <p className="text-[10px] text-stone-400 text-center leading-relaxed mt-2.5 max-w-sm mx-auto">
-                        En validant ce formulaire, vous consentez à l'inscription sécurisée PCI-DSS pour la gestion express de votre livraison de livre papier.
+                        Vos informations de livraison seront sécurisées et enregistrées dans la base Supabase et un reçu de commande automatisé vous sera expédié par e-mail.
                       </p>
                     </div>
 
@@ -870,10 +743,10 @@ export default function Contact() {
                   </div>
                   <div className="space-y-1">
                     <h3 className="font-serif text-2xl font-black text-navy-950">
-                      Paiement Autorisé avec Succès !
+                      Bon de Commande Enregistré !
                     </h3>
                     <p className="text-xs text-emerald-700 tracking-widest font-mono uppercase font-black">
-                      MUTUALISÉ DIRECT BANK SECURE
+                      AIGUILLAGE SECURE VERS WHATSAPP
                     </p>
                   </div>
                 </div>
@@ -881,7 +754,7 @@ export default function Contact() {
                 {/* Receipt Details rows */}
                 <div className="space-y-5">
                   <div className="flex justify-between items-baseline">
-                    <h4 className="font-serif text-base font-bold text-navy-950">Reçu Fiscal & Facturation</h4>
+                    <h4 className="font-serif text-base font-bold text-navy-950">Fiche de Commande</h4>
                     <span className="font-mono text-xs text-stone-500 font-semibold">{new Date().toLocaleDateString("fr-FR")} à {new Date().toLocaleTimeString("fr-FR")}</span>
                   </div>
 
@@ -895,7 +768,7 @@ export default function Contact() {
                         <span className="text-stone-400 uppercase tracking-wider block text-[9px] font-mono font-bold">Méthode de paiement</span>
                         <span className="font-bold text-navy-950 flex items-center space-x-1">
                           <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span>CARTE BANCAIRE (SECU-3D)</span>
+                          <span>WHATSAPP MOBILE_MONEY</span>
                         </span>
                       </div>
                     </div>
@@ -930,7 +803,7 @@ export default function Contact() {
                     </div>
 
                     <div className="border-t border-stone-200 pt-3.5 flex justify-between items-baseline font-black text-sm sm:text-base">
-                      <span className="text-navy-950 uppercase font-mono tracking-wider">Montant total réglé</span>
+                      <span className="text-navy-950 uppercase font-mono tracking-wider">TOTAL DE COMMANDE (À RÉGLER)</span>
                       <div className="text-right">
                         <span className="font-serif text-gold-600 text-lg sm:text-xl block">{totalWithShipping} €</span>
                         <span className="text-[10px] text-stone-500 font-mono block">soit environ {toFcfa(totalWithShipping)} FCFA</span>
@@ -942,27 +815,39 @@ export default function Contact() {
                 {/* Final step action triggers (Print, continue shopping) */}
                 <div className="space-y-4 pt-4 border-t border-stone-200/80">
                   <div className="space-y-4">
-                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                      <p className="text-xs sm:text-sm text-emerald-950 leading-relaxed font-sans">
-                        📚 <strong>Félicitations pour votre investissement !</strong> Votre commande a été enregistrée avec succès. Un reçu officiel de confirmation a été expédié à l'adresse <strong>{email}</strong>. Notre coordinateur logistique vous contactera via WhatsApp (<strong>{phone}</strong>) sous 24h pour synchroniser vos créneaux de livraison point-relais.
+                    <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-4">
+                      <p className="text-xs sm:text-sm text-emerald-950 leading-relaxed font-sans font-semibold">
+                        📚 Félicitations ! Votre intention de commande a été enregistrée avec succès.
                       </p>
+                      
+                      <p className="text-xs sm:text-sm text-emerald-900 leading-relaxed font-sans">
+                        👉 <strong>Étape finale obligatoire :</strong> Veuillez cliquer sur le bouton d'action vert ci-dessous pour ouvrir WhatsApp et envoyer votre bon de commande à l'auteur afin de procéder au règlement (par Mobile Money ou Virement) et recevoir l'ouvrage.
+                      </p>
+                      
+                      <div className="pt-2 text-center">
+                        <a
+                          href={generateWhatsAppUrl(transactionId)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full inline-flex items-center justify-center space-x-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-emerald-600/20 cursor-pointer transition-all animate-pulse hover:scale-[1.01]"
+                        >
+                          <Phone className="w-5 h-5 animate-bounce" />
+                          <span className="text-sm">💬 FINALISER LE PAIEMENT SUR WHATSAPP</span>
+                        </a>
+                      </div>
                     </div>
 
                     {/* Backend Live Integration Diagnosis Badges */}
                     <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-2.5 text-left text-xs text-stone-750">
-                      <div className="font-bold text-stone-900 tracking-wide uppercase font-mono text-[10px]">Diagnostics des Passerelles de Production :</div>
+                      <div className="font-bold text-stone-900 tracking-wide uppercase font-mono text-[10px]">Diagnostics de Liaison :</div>
                       
                       <div className="flex flex-col sm:flex-row gap-2 justify-between items-start sm:items-center">
                         <div className="flex items-center space-x-2">
-                          <span className={`w-2 h-2 rounded-full ${isStripeConfigured ? "bg-emerald-500" : "bg-amber-500"}`} />
-                          <span className="font-semibold text-stone-800">Passerelle de Paiement :</span>
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          <span className="font-semibold text-stone-800">Canal de Caisse :</span>
                         </div>
-                        <span className="font-mono text-[11px]">
-                          {isStripeConfigured ? (
-                            <strong className="text-emerald-700 font-bold">DÉBIT RÉEL EFFECTUÉ (STRIPE LIVE)</strong>
-                          ) : (
-                            <span className="text-amber-700 font-semibold">Mode Simulation (Clé Stripe manquante dans .env)</span>
-                          )}
+                        <span className="font-mono text-[11px] text-emerald-700 font-bold">
+                          WHATSAPP REVENUE STREAM
                         </span>
                       </div>
 
@@ -982,9 +867,9 @@ export default function Contact() {
                         </span>
                       </div>
 
-                      {(!isStripeConfigured || !isSmtpConfigured) && (
+                      {!isSmtpConfigured && (
                         <div className="bg-amber-50/50 border border-amber-200/50 p-3 rounded-lg text-[11px] text-amber-900 leading-normal font-medium mt-1">
-                          💡 <strong>Note pour le Déploiement :</strong> Pour activer les prélèvements bancaires et notifications d'emails réels pour vos clients, veuillez configurer vos variables <code>STRIPE_SECRET_KEY</code> et vos accès <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code> dans le menu des Secrets d'application (Settings panel).
+                          💡 <strong>Note pour le Déploiement :</strong> Pour activer les notifications par e-mail réelles pour vos clients et vous-même, configurez les variables <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code> dans le panneau des secrets.
                         </div>
                       )}
                     </div>
@@ -998,7 +883,7 @@ export default function Contact() {
                       className="w-full sm:w-auto inline-flex items-center justify-center space-x-2.5 bg-white hover:bg-stone-50 border border-stone-200 px-6 py-3 rounded-lg text-xs font-bold text-navy-950 cursor-pointer shadow-sm transition-all"
                     >
                       <Printer className="w-4 h-4 text-stone-500" />
-                      <span>Imprimer mon reçu de caisse</span>
+                      <span>Imprimer mon bon de commande</span>
                     </button>
 
                     <button

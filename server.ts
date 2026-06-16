@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import Stripe from "stripe";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 
 // Load environment variables
 dotenv.config();
@@ -97,6 +98,29 @@ const cleanEnvUrl = (url: string | undefined): string => {
   return clean;
 };
 
+let supabaseClient: any = null;
+const getSupabase = () => {
+  if (!supabaseClient) {
+    const url = cleanEnvUrl(process.env.VITE_SUPABASE_URL);
+    const key = cleanEnvVar(process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY);
+    if (url && key) {
+      try {
+        supabaseClient = createClient(url, key, {
+          auth: {
+            persistSession: false
+          }
+        });
+        console.log("[Server] Supabase client initialized successfully.");
+      } catch (err) {
+        console.error("[Server] Failed to initialize Supabase client:", err);
+      }
+    } else {
+      console.warn("[Server] Supabase keys missing under VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY.");
+    }
+  }
+  return supabaseClient;
+};
+
 // API: Safe dynamic retrieval of public VITE_SUPABASE credentials for client-side live syncing
 app.get("/api/supabase-config", (req, res) => {
   res.json({
@@ -177,49 +201,68 @@ app.post("/api/checkout", async (req, res) => {
     });
   }
 
-  console.log(`[Checkout] Traitement de la commande pour ${name} (${email}) - Total: ${totalAmount} €`);
-
-  let paymentGatewayUsed = "SIMULATION";
-  let transactionId = `TXN-BVMAC-${Math.floor(Math.random() * 900000) + 100000}-EUR`;
+  console.log(`[Checkout] Traitement de la commande WhatsApp pour ${name} (${email}) - Total: ${totalAmount} €`);
+  
+  let paymentGatewayUsed = "WHATSAPP_MOMO";
+  let transactionId = `TXN-WA-${Math.floor(Math.random() * 900000) + 100000}-CEMAC`;
   let paymentError: string | null = null;
+  
+  console.log("[Checkout] Traitement en flux de commande assistée par WhatsApp.");
 
-  const stripe = getStripe();
-  if (stripe) {
+  // Save the order to Supabase database directly from backend server for maximum reliability and bypassing adblockers
+  const supabase = getSupabase();
+  if (supabase) {
     try {
-      console.log("[Checkout] Traitement via la passerelle Stripe réelle...");
-      // For standard Stripe Checkout or PaymentIntent
-      const amountInCents = Math.round(totalAmount * 100);
-      
-      // In a real integration using a single direct payment method from frontend:
-      // We create a PaymentIntent. In test mode, we use the token or test cards.
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amountInCents,
-        currency: "eur",
-        metadata: {
-          customerName: name,
-          customerEmail: email,
-          customerPhone: phone,
-          deliveryCity: city,
-          deliveryCountry: country,
-        },
-        payment_method_types: ["card"],
-        description: `Achat de livre - La Bourse en Afrique par ${name}`,
-      });
+      console.log(`[Checkout DB] Tentative d'enregistrement de la commande ${transactionId} dans Supabase...`);
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .insert([
+          {
+            transaction_id: transactionId,
+            customer_name: name,
+            customer_email: email,
+            customer_phone: phone,
+            delivery_city: city,
+            delivery_country: country,
+            total_amount: totalAmount,
+            shipping_fee: shippingFee || 0,
+            payment_status: "pending_whatsapp",
+            card_holder: "WhatsApp Order",
+            card_last_four: "0000"
+          }
+        ])
+        .select()
+        .single();
 
-      transactionId = paymentIntent.id;
-      paymentGatewayUsed = "STRIPE";
-      console.log(`[Checkout] Réussite Stripe PaymentIntent: ${transactionId}`);
-    } catch (stripeErr: any) {
-      console.error("[Checkout] Erreur lors du prélèvement Stripe:", stripeErr);
-      paymentError = stripeErr.message || "Erreur lors de la validation du prélèvement bancaire.";
-      return res.status(500).json({
-        success: false,
-        paymentError: true,
-        error: `Échec du prélèvement réel sur la carte : ${paymentError}`,
-      });
+      if (orderError) {
+        console.error("[Checkout DB] Erreur lors de l'insertion de la commande dans la table orders :", orderError);
+      } else if (orderData) {
+        console.log(`[Checkout DB] Commande insérée avec succès, ID Supabase : ${orderData.id}`);
+        
+        // Prepare list of items
+        const orderItemsToInsert = cartItems.map((item: any) => ({
+          order_id: orderData.id,
+          product_id: item.id || "livre_physique",
+          product_name: item.name,
+          unit_price: item.price,
+          quantity: item.quantity
+        }));
+
+        const { error: itemsError } = await supabase
+          .from("order_items")
+          .insert(orderItemsToInsert);
+
+        if (itemsError) {
+          console.error("[Checkout DB] Erreur lors de l'insertion des articles dans la table order_items :", itemsError);
+        } else {
+          console.log("[Checkout DB] Articles associés enregistrés avec succès.");
+        }
+      }
+    } catch (dbErr) {
+      console.error("[Checkout DB] Exception de connexion/écriture Supabase :", dbErr);
     }
   } else {
-    console.log("[Checkout] Aucune passerelle Stripe configurée. Simulation active pour les tests.");
+    console.warn("[Checkout DB] Supabase n'est pas configuré sur le serveur, omission de l'écriture en base.");
   }
 
   // HTML content of emails
@@ -242,16 +285,16 @@ app.post("/api/checkout", async (req, res) => {
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; color: #1e293b;">
       <div style="background-color: #0f172a; padding: 24px; border-radius: 8px 8px 0 0; text-align: center; border-bottom: 3px solid #d97706;">
         <h2 style="color: #f59e0b; margin: 0; font-family: Georgia, serif; font-size: 24px; font-weight: 900;">LA BOURSE EN AFRIQUE</h2>
-        <p style="color: #94a3b8; font-size: 12px; margin: 4px 0 0; letter-spacing: 1px; font-family: monospace;">REÇU OFFICIEL DE CONFIGURATION D'ACHAT</p>
+        <p style="color: #94a3b8; font-size: 12px; margin: 4px 0 0; letter-spacing: 1px; font-family: monospace;">BON DE COMMANDE ET DIRECTIVES WHATSAPP</p>
       </div>
       
       <div style="padding: 24px;">
         <p style="font-size: 15px; line-height: 1.6;">Bonjour <strong>${name}</strong>,</p>
-        <p style="font-size: 15px; line-height: 1.6; color: #0f766e; font-weight: bold; text-align: center; background-color: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0;">
-          🎉 Félicitations pour votre investissement financier ! Votre transaction a été validée avec succès.
+        <p style="font-size: 15px; line-height: 1.6; color: #b45309; font-weight: bold; text-align: center; background-color: #fffbeb; padding: 12px; border-radius: 8px; border: 1px solid #fde68a;">
+          🎉 Votre bon de commande a été généré avec succès ! Veuillez finaliser le règlement sur WhatsApp.
         </p>
         
-        <p style="font-size: 14px; line-height: 1.6;">Votre commande pour l'ouvrage de référence de <strong>Siewe de Kalambak Steeves</strong> a bien été enregistrée. Voici le récapitulatif fiscal de votre transaction :</p>
+        <p style="font-size: 14px; line-height: 1.6;">Votre intention de commande pour l'ouvrage de référence de <strong>Siewe de Kalambak Steeves</strong> a bien été enregistrée. Voici le récapitulatif détaillé :</p>
         
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px;">
           <thead>
@@ -268,7 +311,7 @@ app.post("/api/checkout", async (req, res) => {
               <td style="padding: 12px; text-align: right; font-weight: bold; color: #0f172a;">+${shippingFee} €</td>
             </tr>
             <tr style="background-color: #fef3c7;">
-              <td colspan="2" style="padding: 12px; text-align: right; font-weight: 900; color: #0f172a; font-size: 14px;">MONTANT TOTAL RÉGLÉ</td>
+              <td colspan="2" style="padding: 12px; text-align: right; font-weight: 900; color: #0f172a; font-size: 14px;">TOTAL DE LA COMMANDE</td>
               <td style="padding: 12px; text-align: right; font-weight: 900; color: #b45309; font-size: 16px;">
                 ${totalAmount} €<br/>
                 <span style="font-size: 11px; font-weight: bold; color: #78350f; font-family: monospace;">soit environ ${toFcfa(totalAmount)} FCFA</span>
@@ -411,7 +454,7 @@ app.post("/api/checkout", async (req, res) => {
     paymentGatewayUsed,
     emailSent: emailSentStatus,
     smtpConfigured: !!transporter,
-    stripeConfigured: !!stripe,
+    stripeConfigured: !!getStripe(),
     emailError: emailErrorLog || null,
     message: "Commande validée et enregistrée !",
   });

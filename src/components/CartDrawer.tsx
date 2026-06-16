@@ -212,10 +212,10 @@ export default function CartDrawer() {
 
                     <button
                       onClick={handleCheckoutClick}
-                      className="w-full flex items-center justify-center space-x-2 bg-navy-950 hover:bg-navy-900 border border-gold-500/20 text-gold-400 hover:text-white py-4 px-6 rounded-xl font-bold shadow-lg shadow-navy-950/10 cursor-pointer transition-all"
+                      className="w-full flex items-center justify-center space-x-2 bg-navy-950 hover:bg-navy-950 border border-gold-500/25 text-gold-400 hover:text-white py-4 px-6 rounded-xl font-bold shadow-lg shadow-navy-950/10 cursor-pointer transition-all"
                     >
-                      <CreditCard className="w-4.5 h-4.5" />
-                      <span>Procéder au paiement par carte</span>
+                      <ArrowRight className="w-4.5 h-4.5" />
+                      <span>Procéder au paiement sur WhatsApp</span>
                     </button>
 
                     <button
