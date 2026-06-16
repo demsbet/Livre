@@ -256,6 +256,30 @@ Je souhaite finaliser mon paiement via Mobile Money ou Virement Bancaire. Merci 
     let currentStepIdx = 0;
     setProcessingStep(steps[0]);
 
+    // Client-side fallback routine for static hosts like Vercel
+    const runClientFallback = async () => {
+      console.log("[Checkout Vercel Fallback] Activation de l'écriture en base en mode client-only autonome...");
+      const clientTxnId = `TXN-WA-${Math.floor(100000 + Math.random() * 900000)}`;
+      
+      try {
+        // Direct write to Supabase from the client
+        await saveOrderToSupabase(clientTxnId);
+        
+        setTransactionId(clientTxnId);
+        setIsSmtpConfigured(false);
+        setIsStripeConfigured(false);
+        setEmailSent(false);
+        setEmailError("Note : l'envoi d'e-mail automatique par le serveur a été omis (Vercel héberge le site en mode statique sans serveur). Veuillez finaliser sur WhatsApp.");
+        
+        setIsProcessing(false);
+        setIsPaid(true);
+      } catch (fallbackErr: any) {
+        console.error("[Checkout Fallback] Échec de la sauvegarde client-side :", fallbackErr);
+        setErrors(["Une erreur technique est survenue lors de l'enregistrement de votre bon de commande sur le client. Veuillez réessayer ou contacter l'auteur sur WhatsApp."]);
+        setIsProcessing(false);
+      }
+    };
+
     // Fast progress through encryption/security checks, then send API payload
     const interval = setInterval(() => {
       currentStepIdx++;
@@ -281,11 +305,15 @@ Je souhaite finaliser mon paiement via Mobile Money ou Virement Bancaire. Merci 
             shippingFee: getShippingCost()
           })
         })
-          .then((res) => {
+          .then(async (res) => {
+            const contentType = res.headers.get("content-type");
+            // If the server returns HTML instead of JSON (e.g. 404/500 static page on Vercel), trigger static fallback
+            if (!contentType || !contentType.includes("application/json")) {
+              throw new Error("STATIC_HOST_FALLBACK");
+            }
             if (!res.ok) {
-              return res.json().then((errData) => {
-                throw new Error(errData.error || "Une erreur est survenue lors de la validation fiscale.");
-              });
+              const errData = await res.json().catch(() => ({}));
+              throw new Error(errData.error || "Une erreur est survenue lors de la validation fiscale.");
             }
             return res.json();
           })
@@ -300,7 +328,7 @@ Je souhaite finaliser mon paiement via Mobile Money ou Virement Bancaire. Merci 
               setIsProcessing(false);
               setIsPaid(true);
               
-              // Maintain local/secondary database recording for absolute safety
+              // Maintain database recording
               saveOrderToSupabase(data.transactionId);
             } else {
               setErrors([data.error || "La passerelle de commande a refusé la demande."]);
@@ -308,9 +336,14 @@ Je souhaite finaliser mon paiement via Mobile Money ou Virement Bancaire. Merci 
             }
           })
           .catch((err) => {
-            console.error("[Checkout] Échec :", err);
-            setErrors([err.message || "Impossible de joindre le serveur de facturation ou messagerie."]);
-            setIsProcessing(false);
+            if (err.message === "STATIC_HOST_FALLBACK" || err.message.includes("is not valid JSON") || err.message.includes("Unexpected token")) {
+              console.log("[Checkout] Serveur indisponible ou mode statique détecté. Utilisation du mode de secours client...");
+              runClientFallback();
+            } else {
+              console.error("[Checkout] Échec de la requête de paiement :", err);
+              setErrors([err.message || "Impossible de joindre le serveur de facturation ou messagerie de messagerie."]);
+              setIsProcessing(false);
+            }
           });
       }
     }, 1200);
